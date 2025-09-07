@@ -1,0 +1,69 @@
+server:
+  port: 8506
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl # 查看日志
+spring:
+  main:
+    allow-bean-definition-overriding: true #当遇到同样名字的时候，是否允许覆盖注册
+  cloud:
+    sentinel:
+      transport:
+        dashboard: localhost:8080
+    openfeign:
+      lazy-attributes-resolution: true
+      client:
+        config:
+          default:
+            connectTimeout: 30000
+            readTimeout: 30000
+            loggerLevel: basic
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      timeout: 1800000
+      password:
+  rabbitmq:
+    host: 139.198.152.148
+    port: 5672
+    username: guest
+    password: guest
+    publisher-confirm-type: CORRELATED
+    publisher-returns: true
+    listener:
+      simple:
+        acknowledge-mode: manual #默认情况下消息消费者是自动确认消息的，如果要手动确认消息则需要修改确认模式为manual
+        prefetch: 1  # 在prefetch=1的情况下，消费者在确认当前消息之前不会收到新的消息  在多个消费者下也不会将多个未确认的消息同时发送给同一个消费者。
+  datasource:
+    type: com.zaxxer.hikari.HikariDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://139.198.104.58:3306/tingshu_payment?serverTimezone=UTC&characterEncoding=utf8&useUnicode=true&useSSL=true
+    username: root
+    password: shangguigu@QY123
+    hikari:
+      connection-test-query: SELECT 1
+      connection-timeout: 60000
+      idle-timeout: 500000
+      max-lifetime: 540000
+      maximum-pool-size: 10
+      minimum-idle: 5
+      pool-name: GuliHikariPool
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+wechat:
+  v3pay:
+    #小程序微信公众平台appId
+    appid: wxcc651fcbab275e33
+    #商户号
+    merchantId: 1631833859
+    #商户API私钥路径
+    privateKeyPath: /root/tingshu/apiclient_key.pem
+    #商户证书序列号
+    merchantSerialNumber: 4AE80B52EBEAB2B96F68E02510A42801E952E889
+    #商户APIV3密钥
+    apiV3key: 84dba6dd51cdaf779e55bcabae564b53
+    #异步回调地址
+    notifyUrl: http://139.198.163.91:8500/api/payment/wxPay/notify
