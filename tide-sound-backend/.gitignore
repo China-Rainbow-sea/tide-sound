@@ -3,6 +3,15 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+### Custom ###
+application-local.yml
+application-local.yaml
+application-prod.yml
+application-prod.yaml
+
+
+
+
 ### IntelliJ IDEA ###
 .idea/modules.xml
 .idea/jarRepositories.xml

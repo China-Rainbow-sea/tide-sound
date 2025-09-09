@@ -2,7 +2,7 @@ server:
   port: 8500
 spring:
   cloud:
-    openfeign: # 解决openfeign的时间
+    openfeign:
       client:
         config:
           default:
