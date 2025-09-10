@@ -2,6 +2,7 @@ package com.rainbowsea.tidesound.user.service;
 
 import com.rainbowsea.tidesound.model.user.UserInfo;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.rainbowsea.tidesound.vo.user.UserInfoVo;
 
 import java.util.Map;
 
@@ -19,4 +20,11 @@ public interface UserInfoService extends IService<UserInfo> {
      * @return
      */
     Map<String, Object> getNewAccessToken();
+
+
+    /**
+     * 更新用户信息：用户头像，用户昵称
+     * @param userInfoVo
+     */
+    void updateUser(UserInfoVo userInfoVo);
 }

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="com.rainbowsea.tidesound.album.mapper.BaseCategory1Mapper">
+
+    <resultMap id="baseCategoryResult" type="com.rainbowsea.tidesound.vo.category.CategoryVo">
+
+        <id column="category1Id" property="categoryId"></id>
+        <result column="category1Name" property="categoryName"></result>
+        <collection property="categoryChild" ofType="com.rainbowsea.tidesound.vo.category.CategoryVo">
+            <id column="category2Id" property="categoryId"></id>
+            <result column="category2Name" property="categoryName"></result>
+            <collection property="categoryChild" ofType="com.rainbowsea.tidesound.vo.category.CategoryVo">
+                <id column="category3Id" property="categoryId"></id>
+                <result column="category3Name" property="categoryName"></result>
+            </collection>
+        </collection>
+
+    </resultMap>
+
+    <select id="getBaseCategoryList" resultMap="baseCategoryResult">
+        SELECT category1_id   as category1Id,
+               category1_name as category1Name,
+               category2_id   as category2Id,
+               category2_name as category2Name,
+               category3_id   as category3Id,
+               category3_name as category3Name
+        FROM `base_category_view`
+        WHERE base_category_view.is_deleted = 0
+    </select>
+</mapper>
+

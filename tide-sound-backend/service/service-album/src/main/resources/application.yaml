@@ -8,18 +8,31 @@
 #  application中主要配置应用需要的各个组件的信息（MySQL  Redis   MQ...）
 
 server:
-  port: 8520   # user微服务的端口
+  port: 8530   # user微服务的端口
 
 
 spring:
+  # 表示开发环境接入 application-local.yaml 的配置
+  profiles:
+    active: prod
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 100MB
   # mysql
   datasource:
     type: com.zaxxer.hikari.HikariDataSource   # 数据源连接池（最快）
     driver-class-name: com.mysql.jdbc.Driver   # 指定数据库的驱动
-    url: jdbc:mysql://192.168.76.15:3306/tingshu_account
+    url: jdbc:mysql://192.168.76.15:3306/tingshu_album
     username: root
     password: root
-
+  # redis
+  data:
+    redis:
+      host: 192.168.76.15
+      port: 6379
+      password: root
+      database: 0
   # RabbitMQ
   rabbitmq:
     host: 192.168.76.15
@@ -36,3 +49,12 @@ spring:
   main:
     allow-bean-definition-overriding: true   # 这种写法会有风险,解决注册中心,服务名重复冲突的问题,覆盖
 
+
+
+# minio 存储服务(存储桶配置)
+#minio:
+#  endpoint-url: http://xxx:9000
+#  access-key: xx
+#  secre-key: xxx
+#  bucket-name: xxx
+#  enable: true

@@ -1,16 +1,15 @@
-package com.rainbowsea.tidesound.album.config;
+package com.rainbowsea.tidesound.common.minio.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
 
-@Configuration
+//@Configuration
 @ConfigurationProperties(prefix="minio") //读取节点
 @Data
-public class MinioConstantProperties {
+public class MinioProperties {
 
     private String endpointUrl;
     private String accessKey;
-    private String secreKey;
+    private String secretKey;
     private String bucketName;
 }

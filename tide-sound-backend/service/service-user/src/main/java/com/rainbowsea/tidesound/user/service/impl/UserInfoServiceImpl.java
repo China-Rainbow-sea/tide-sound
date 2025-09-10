@@ -10,10 +10,12 @@ import com.rainbowsea.tidesound.common.constant.RedisConstant;
 import com.rainbowsea.tidesound.common.execption.GuiguException;
 import com.rainbowsea.tidesound.common.rabbit.constant.MqConst;
 import com.rainbowsea.tidesound.common.rabbit.service.RabbitService;
+import com.rainbowsea.tidesound.common.util.AuthContextHolder;
 import com.rainbowsea.tidesound.model.user.UserInfo;
 import com.rainbowsea.tidesound.user.mapper.UserInfoMapper;
 import com.rainbowsea.tidesound.user.service.UserInfoService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.rainbowsea.tidesound.vo.user.UserInfoVo;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.error.WxErrorException;
@@ -217,6 +219,20 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
         }
 
         return result;
+    }
+
+    @Override
+    public void updateUser(UserInfoVo userInfoVo) {
+        // 1.查询用户信息
+        Long userId = AuthContextHolder.getUserId();
+
+        UserInfo userInfo = userInfoMapper.selectById(userId);
+        if (null == userInfo) {
+            throw new GuiguException(201, "用户信息不存在");
+        }
+        userInfo.setNickname(userInfoVo.getNickname());
+        userInfo.setAvatarUrl(userInfoVo.getAvatarUrl());
+        userInfoMapper.updateById(userInfo);
     }
 
 }

@@ -16,6 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -38,6 +40,17 @@ public class WxLoginApiController {
 
         // 登录成功返回给前端的map,包含着后端给前端的认证的 token 信息
         return Result.ok(map);
+    }
+
+
+    // http://localhost:8500/api/user/wxLogin/updateUse
+    @PostMapping("/updateUser")
+    @Operation(summary = "更新用户信息")
+    @TingshuLogin
+    public Result updateUser(@RequestBody UserInfoVo userInfoVo) {
+
+        userInfoService.updateUser(userInfoVo);
+        return Result.ok();
     }
 
     // Request URL: http://192.168.200.1:8500/api/user/wxLogin/getUserInfo

@@ -106,6 +106,12 @@
         </dependency>
 
 
+<!--        minio 存储服务: -->
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+        </dependency>
+
     </dependencies>
 
 </project>

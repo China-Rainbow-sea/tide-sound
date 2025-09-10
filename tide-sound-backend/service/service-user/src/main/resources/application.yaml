@@ -8,7 +8,7 @@
 #  application中主要配置应用需要的各个组件的信息（MySQL  Redis   MQ...）
 
 server:
-  port: 8511   # user微服务的端口
+  port: 8510   # user微服务的端口
 
 
 spring:
