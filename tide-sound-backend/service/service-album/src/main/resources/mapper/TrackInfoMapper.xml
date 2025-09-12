@@ -1,10 +1,42 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
-PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN"
-"http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
 
 
 <mapper namespace="com.rainbowsea.tidesound.album.mapper.TrackInfoMapper">
 
+
+    <select id="findUserTrackPage" resultType="com.rainbowsea.tidesound.vo.album.TrackListVo">
+
+        SELECT
+        track_info.album_id as albumId,
+        track_info.id as trackId,
+        track_info.track_title,
+        track_info.cover_url,
+        track_info.media_duration,
+        track_info.`status`,
+        max(IF(track_stat.stat_type='0701',track_stat.stat_num,0)) as playStatNum,
+        max(IF(track_stat.stat_type='0702',track_stat.stat_num,0)) as collectStatNum,
+        max(IF(track_stat.stat_type='0703',track_stat.stat_num,0)) as praiseStatNum ,
+        max(IF(track_stat.stat_type='0704',track_stat.stat_num,0)) as commentStatNum
+        FROM `track_info`
+        INNER JOIN track_stat
+        ON track_info.id=track_stat.track_id
+        <where>
+            <if test="vo.trackTitle!=null  and  vo.trackTitle!=''">
+                and   track_info.track_title=#{vo.trackTitle}
+            </if>
+            <if test="vo.status !=null and  vo. status!=''">
+                and track_info.status=#{status}
+            </if>
+            and  track_info.user_id=#{vo.userId} and track_info.is_deleted=0
+        </where>
+        GROUP BY track_info.id
+        ORDER BY track_info.update_time DESC
+
+
+    </select>
 </mapper>
 

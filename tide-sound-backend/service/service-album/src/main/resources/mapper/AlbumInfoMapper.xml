@@ -1,11 +1,41 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
-PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN"
-"http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
 
 
 <mapper namespace="com.rainbowsea.tidesound.album.mapper.AlbumInfoMapper">
 
 
+    <select id="findUserAlbumPage" resultType="com.rainbowsea.tidesound.vo.album.AlbumListVo">
+        SELECT
+        album_info.id as albumId,
+        album_info.album_title,
+        album_info.cover_url,
+        album_info.include_track_count,
+        album_info.is_finished,
+        album_info.`status`,
+        max(IF(album_stat.stat_type='0401',album_stat.stat_num,0)) as playStatNum,
+        max(IF(album_stat.stat_type='0402',album_stat.stat_num,0)) as subscribeStatNum,
+        max(IF(album_stat.stat_type='0403',album_stat.stat_num,0)) as buyStatNum ,
+        max(IF(album_stat.stat_type='0404',album_stat.stat_num,0)) as commentStatNum
+        FROM `album_info`
+        INNER JOIN album_stat
+        ON album_info.id=album_stat.album_id
+        <where>
+            <if test="vo.albumTitle !=null  and  vo. albumTitle!=''">
+                and    album_info.album_title=#{vo.albumTitle}
+            </if>
+            <if test="vo.status !=null and  vo. status!=''">
+                and album_info.status=#{status}
+            </if>
+            and  album_info.user_id=#{vo.userId} and album_info.is_deleted=0
+        </where>
+        GROUP BY album_info.id
+        ORDER BY album_info.update_time DESC
+
+
+    </select>
 </mapper>
 

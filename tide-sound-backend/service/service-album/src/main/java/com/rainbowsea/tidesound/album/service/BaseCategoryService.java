@@ -1,5 +1,6 @@
 package com.rainbowsea.tidesound.album.service;
 
+import com.rainbowsea.tidesound.model.album.BaseAttribute;
 import com.rainbowsea.tidesound.model.album.BaseCategory1;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.rainbowsea.tidesound.vo.category.CategoryVo;
@@ -24,4 +25,12 @@ public interface BaseCategoryService extends IService<BaseCategory1> {
      * @return
      */
     public List<CategoryVo> getBaseCategoryList2();
+
+
+    /**
+     * 根据一级分类查询专辑的标签信息[属性+属性值]
+     * @param category1Id
+     * @return
+     */
+    List<BaseAttribute> findAttribute(Long category1Id);
 }

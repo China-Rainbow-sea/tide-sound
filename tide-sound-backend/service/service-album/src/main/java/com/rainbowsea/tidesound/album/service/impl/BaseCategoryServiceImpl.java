@@ -1,11 +1,13 @@
 package com.rainbowsea.tidesound.album.service.impl;
 
 import com.google.common.collect.Lists;
+import com.rainbowsea.tidesound.album.mapper.BaseAttributeMapper;
 import com.rainbowsea.tidesound.album.mapper.BaseCategory1Mapper;
 import com.rainbowsea.tidesound.album.mapper.BaseCategory2Mapper;
 import com.rainbowsea.tidesound.album.mapper.BaseCategory3Mapper;
 import com.rainbowsea.tidesound.album.mapper.BaseCategoryViewMapper;
 import com.rainbowsea.tidesound.album.service.BaseCategoryService;
+import com.rainbowsea.tidesound.model.album.BaseAttribute;
 import com.rainbowsea.tidesound.model.album.BaseCategory1;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.rainbowsea.tidesound.model.album.BaseCategoryView;
@@ -34,6 +36,12 @@ public class BaseCategoryServiceImpl extends ServiceImpl<BaseCategory1Mapper, Ba
     // 操作 tingshu_album 数据库下的 base_category_view 视图
     @Autowired
     private BaseCategoryViewMapper baseCategoryViewMapper;
+
+
+
+    // 操作数据表
+    @Autowired
+    private BaseAttributeMapper baseAttributeMapper;
 
 
     /**
@@ -108,5 +116,11 @@ public class BaseCategoryServiceImpl extends ServiceImpl<BaseCategory1Mapper, Ba
 
         return result;
 
+    }
+
+    @Override
+    public List<BaseAttribute> findAttribute(Long category1Id) {
+
+        return baseAttributeMapper.findAttribute(category1Id);
     }
 }

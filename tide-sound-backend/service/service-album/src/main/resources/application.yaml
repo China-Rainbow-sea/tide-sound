@@ -48,6 +48,7 @@ spring:
 
   main:
     allow-bean-definition-overriding: true   # 这种写法会有风险,解决注册中心,服务名重复冲突的问题,覆盖
+    allow-circular-references: true  # 表示开启 Spring boot 的解决循环依赖问题
 
 
 
@@ -58,3 +59,11 @@ spring:
 #  secre-key: xxx
 #  bucket-name: xxx
 #  enable: true
+
+
+#vod:
+#  appId: xxx
+#  secretId: xxx
+#  secretKey: xxx
+#  region: ap-guangzhou
+#  tempPath: D:/temp/1024  #临时目录(主要为了获取前端上传文件的地址)

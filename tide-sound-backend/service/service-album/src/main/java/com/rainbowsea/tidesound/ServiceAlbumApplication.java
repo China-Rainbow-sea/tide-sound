@@ -9,6 +9,7 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 @SpringBootApplication
 @EnableFeignClients
 @EnableMinioManagement
+@EnableAspectJAutoProxy(exposeProxy = true)  // 开启 Spring 的AOP 自动代理功能，并确保内部方法调用时也能触发代理逻辑
 public class ServiceAlbumApplication {
 
     public static void main(String[] args) {

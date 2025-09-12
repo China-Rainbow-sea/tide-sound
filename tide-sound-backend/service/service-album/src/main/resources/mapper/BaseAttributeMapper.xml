@@ -7,5 +7,30 @@
 <mapper namespace="com.rainbowsea.tidesound.album.mapper.BaseAttributeMapper">
 
 
+    <resultMap id="baseAttributeAndValueMap" type="com.rainbowsea.tidesound.model.album.BaseAttribute"
+               autoMapping="true">
+        <id column="id" property="id"></id>
+        <collection property="attributeValueList" ofType="com.rainbowsea.tidesound.model.album.BaseAttributeValue"
+                    autoMapping="true">
+            <id column="vId" property="id"></id>
+        </collection>
+
+    </resultMap>
+    <select id="findAttribute" resultMap="baseAttributeAndValueMap">
+
+        SELECT ba.id,
+               ba.category1_id,
+               ba.attribute_name,
+
+               bav.id as vId,
+               bav.attribute_id,
+               bav.value_name
+
+        FROM `base_attribute` as ba
+                 INNER JOIN base_attribute_value AS bav
+                            ON ba.id = bav.attribute_id
+        WHERE ba.category1_id = #{c1Id}
+          and ba.is_deleted = 0
+    </select>
 </mapper>
 
