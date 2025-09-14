@@ -1,0 +1,104 @@
+{
+  "Response": {
+    "MediaInfoSet": [
+      {
+        "AdaptiveDynamicStreamingInfo": null,
+        "AnimatedGraphicsInfo": null,
+        "BasicInfo": {
+          "Category": "Audio",
+          "ClassId": 0,
+          "ClassName": "其他",
+          "ClassPath": "其他",
+          "CoverUrl": "",
+          "CreateTime": "2025-03-14T07:34:48Z",
+          "Description": "",
+          "ExpireTime": "9999-12-31T23:59:59Z",
+          "MediaUrl": "http://1257391501.vod-qcloud.com/5ff2faa1vodgzp1257391501/280acfb01397757907238820193/1qPFVHxpiUoA.mp3",
+          "Name": "o4YGVGM0Clcj2c469fcfef554bcf91d99f3eae70691d",
+          "SourceInfo": {
+            "LiveRecordInfo": null,
+            "SourceContext": "",
+            "SourceType": "Upload",
+            "TrtcRecordInfo": null,
+            "WebPageRecordInfo": null
+          },
+          "Status": "Normal",
+          "StorageClass": "STANDARD",
+          "StorageRegion": "ap-guangzhou",
+          "TagSet": [],
+          "Type": "mp3",
+          "UpdateTime": "2025-03-14T07:34:48Z",
+          "Vid": "1397757907238820193"
+        },
+        "FileId": "1397757907238820193",
+        "ImageSpriteInfo": null,
+        "KeyFrameDescInfo": null,
+        "MetaData": {
+          "AudioDuration": 43.032,
+          "AudioStreamSet": [
+            {
+              "Bitrate": 128000,
+              "Codec": "mp3",
+              "SamplingRate": 48000
+            }
+          ],
+          "Bitrate": 128100,
+          "Container": "mp3",
+          "Duration": 43.032,
+          "Height": 0,
+          "Md5": "",
+          "Rotate": 0,
+          "Size": 689054,
+          "VideoDuration": 0,
+          "VideoStreamSet": [],
+          "Width": 0
+        },
+        "MiniProgramReviewInfo": null,
+        "ReviewInfo": null,
+        "SampleSnapshotInfo": null,
+        "SnapshotByTimeOffsetInfo": null,
+        "SubtitleInfo": null,
+        "TranscodeInfo": {
+          "TranscodeSet": [
+            {
+              "AudioStreamSet": [
+                {
+                  "Bitrate": 128000,
+                  "Codec": "mp3",
+                  "SamplingRate": 48000
+                }
+              ],
+              "Bitrate": 128000,
+              "Container": "mp3",
+              "CopyRightWatermarkText": "",
+              "Definition": 0,
+              "DigitalWatermarkType": "",
+              "Duration": 43,
+              "Height": 0,
+              "Md5": "",
+              "Size": 689054,
+              "Url": "http://1257391501.vod-qcloud.com/5ff2faa1vodgzp1257391501/280acfb01397757907238820193/1qPFVHxpiUoA.mp3",
+              "VideoStreamSet": [
+                {
+                  "Bitrate": 0,
+                  "Codec": "",
+                  "CodecTag": "",
+                  "DynamicRangeInfo": {
+                    "HDRType": "",
+                    "Type": ""
+                  },
+                  "Fps": 0,
+                  "Height": 0,
+                  "Width": 0
+                }
+              ],
+              "Width": 0
+            }
+          ]
+        }
+      }
+    ],
+    "NotExistFileIdSet": [],
+    "RequestId": "dd636361-66ee-488e-b610-636e576342dc"
+  }
+}

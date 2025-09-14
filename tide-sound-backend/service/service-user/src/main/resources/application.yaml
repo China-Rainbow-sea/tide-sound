@@ -46,6 +46,9 @@ spring:
     allow-bean-definition-overriding: true   # 这种写法会有风险,解决注册中心,服务名重复冲突的问题,覆盖
 
 
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
 #wx:(自定义的配置顶头写)
 #  login:

@@ -1,0 +1,10 @@
+server:
+  port: 9000   # user微服务的端口
+spring:
+  elasticsearch:
+    uris: http://192.168.76.15:9200
+
+
+
+
+
