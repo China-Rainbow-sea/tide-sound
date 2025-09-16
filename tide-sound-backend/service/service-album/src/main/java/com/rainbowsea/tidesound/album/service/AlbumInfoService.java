@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.rainbowsea.tidesound.query.album.AlbumInfoQuery;
 import com.rainbowsea.tidesound.vo.album.AlbumInfoVo;
 import com.rainbowsea.tidesound.vo.album.AlbumListVo;
+import com.rainbowsea.tidesound.vo.album.AlbumStatVo;
 
 import java.util.List;
 
@@ -59,4 +60,10 @@ public interface AlbumInfoService extends IService<AlbumInfo> {
      */
     List<AlbumInfo> findUserAllAlbumList(Long userId);
 
+    /**
+     * 根据专辑id 查询专辑对应的统计信息
+     * @param albumId
+     * @return
+     */
+    AlbumStatVo getAlbumStat(Long albumId);
 }

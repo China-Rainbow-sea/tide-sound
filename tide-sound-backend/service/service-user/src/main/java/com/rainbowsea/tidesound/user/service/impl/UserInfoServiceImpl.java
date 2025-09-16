@@ -20,6 +20,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.error.WxErrorException;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.jwt.Jwt;
@@ -233,6 +234,21 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
         userInfo.setNickname(userInfoVo.getNickname());
         userInfo.setAvatarUrl(userInfoVo.getAvatarUrl());
         userInfoMapper.updateById(userInfo);
+    }
+
+    @Override
+    public UserInfoVo getUserInfo(Long userId) {
+
+
+        UserInfo userInfo = userInfoMapper.selectById(userId);
+
+        if (userInfo == null) {
+            throw new GuiguException(201, "用户不存在");
+        }
+        UserInfoVo userInfoVo = new UserInfoVo();
+        BeanUtils.copyProperties(userInfo, userInfoVo);
+
+        return userInfoVo;
     }
 
 }

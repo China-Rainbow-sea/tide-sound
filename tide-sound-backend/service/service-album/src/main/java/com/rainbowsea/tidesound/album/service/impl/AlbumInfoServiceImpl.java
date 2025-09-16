@@ -21,6 +21,7 @@ import com.rainbowsea.tidesound.query.album.AlbumInfoQuery;
 import com.rainbowsea.tidesound.vo.album.AlbumAttributeValueVo;
 import com.rainbowsea.tidesound.vo.album.AlbumInfoVo;
 import com.rainbowsea.tidesound.vo.album.AlbumListVo;
+import com.rainbowsea.tidesound.vo.album.AlbumStatVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.beans.BeanUtils;
@@ -226,6 +227,11 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
         return albumInfoMapper.selectList(new LambdaQueryWrapper<AlbumInfo>().eq(AlbumInfo::getUserId, userId));
     }
 
+    @Override
+    public AlbumStatVo getAlbumStat(Long albumId) {
+
+        return albumInfoMapper.getAlbumStat(albumId);
+    }
     /**
      *  保存专辑的统计（album_stat） 操作  album_stat 数据表
      * @param albumId

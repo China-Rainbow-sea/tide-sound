@@ -3,6 +3,7 @@ package com.rainbowsea.tidesound.album.api;
 import com.rainbowsea.tidesound.album.service.BaseCategoryService;
 import com.rainbowsea.tidesound.common.result.Result;
 import com.rainbowsea.tidesound.model.album.BaseAttribute;
+import com.rainbowsea.tidesound.model.album.BaseCategory3;
 import com.rainbowsea.tidesound.vo.category.CategoryVo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -42,6 +43,17 @@ public class BaseCategoryApiController {
 
         List<BaseAttribute> baseAttributes = baseCategoryService.findAttribute(category1Id);
         return Result.ok(baseAttributes);
+    }
+
+
+
+    // Request URL: http://192.168.200.1:8500/api/album/category/findTopBaseCategory3/1
+    @GetMapping("/findTopBaseCategory3/{c1Id}")
+    @Operation(summary = "根据一级分类id查询置顶的七个三级分类")
+    public Result findTopBaseCategory3(@PathVariable(value = "c1Id") Long c1Id) {
+
+        List<BaseCategory3> category3s = baseCategoryService.findTopBaseCategory3(c1Id);
+        return Result.ok(category3s);
     }
 
 }

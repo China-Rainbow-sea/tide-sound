@@ -5,6 +5,7 @@ import com.rainbowsea.tidesound.model.album.AlbumInfo;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.rainbowsea.tidesound.query.album.AlbumInfoQuery;
 import com.rainbowsea.tidesound.vo.album.AlbumListVo;
+import com.rainbowsea.tidesound.vo.album.AlbumStatVo;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -21,5 +22,12 @@ public interface AlbumInfoMapper extends BaseMapper<AlbumInfo> {
      */
     IPage<AlbumListVo> findUserAlbumPage(@Param("pageParam") IPage<AlbumListVo> pageParam, @Param("vo") AlbumInfoQuery albumInfoQuery);
 
+    /**
+     * 根据专辑id查询专辑分统计信息
+     *
+     * @param albumId
+     * @return
+     */
+    AlbumStatVo getAlbumStat(@Param("albumId") Long albumId);
 
 }

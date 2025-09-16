@@ -37,5 +37,20 @@
 
 
     </select>
+
+
+    <select id="getAlbumStat" resultType="com.rainbowsea.tidesound.vo.album.AlbumStatVo">
+        SELECT album_stat.album_id,
+               max(IF(album_stat.stat_type = '0401', album_stat.stat_num, 0)) AS playStatNum,
+               max(IF(album_stat.stat_type = '0402', album_stat.stat_num, 0)) AS subscribeStatNum,
+               max(IF(album_stat.stat_type = '0403', album_stat.stat_num, 0)) AS buyStatNum,
+               max(IF(album_stat.stat_type = '0404', album_stat.stat_num, 0)) AS commentStatNum
+        FROM album_stat
+        WHERE album_stat.album_id = #{albumId}
+          AND album_stat.is_deleted = 0
+        GROUP BY album_stat.album_id
+    </select>
+
+
 </mapper>
 

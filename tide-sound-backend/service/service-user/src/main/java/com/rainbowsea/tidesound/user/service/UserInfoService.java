@@ -27,4 +27,11 @@ public interface UserInfoService extends IService<UserInfo> {
      * @param userInfoVo
      */
     void updateUser(UserInfoVo userInfoVo);
+
+    /**
+     * 通过用户id，获取用户信息
+     * @param userId
+     * @return
+     */
+    UserInfoVo getUserInfo(Long userId);
 }

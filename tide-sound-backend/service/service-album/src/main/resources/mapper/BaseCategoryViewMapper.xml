@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="com.rainbowsea.tidesound.album.mapper.BaseCategoryViewMapper">
+
+
+    <select id="getAlbumCategory" resultType="com.rainbowsea.tidesound.model.album.BaseCategoryView">
+
+        SELECT
+               album_info.id,
+               base_category2.category1_id,
+               base_category1.name as category1_name,
+
+               base_category3.category2_id,
+               base_category2.name as category2_name,
+
+               album_info.category3_id,
+               base_category3.name as category3_name
+        FROM album_info
+        INNER JOIN base_category3
+        ON album_info.category3_id = base_category3.id
+        INNER JOIN base_category2
+        ON base_category3.category2_id = base_category2.id
+        INNER JOIN base_category1
+        ON base_category2.category1_id = base_category1.id
+        WHERE album_info.id = #{albumId}
+        AND album_info.is_deleted = 0
+    </select>
+</mapper>
+

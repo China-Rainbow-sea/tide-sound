@@ -1,5 +1,6 @@
 package com.rainbowsea.tidesound.album.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.google.common.collect.Lists;
 import com.rainbowsea.tidesound.album.mapper.BaseAttributeMapper;
 import com.rainbowsea.tidesound.album.mapper.BaseCategory1Mapper;
@@ -7,13 +8,17 @@ import com.rainbowsea.tidesound.album.mapper.BaseCategory2Mapper;
 import com.rainbowsea.tidesound.album.mapper.BaseCategory3Mapper;
 import com.rainbowsea.tidesound.album.mapper.BaseCategoryViewMapper;
 import com.rainbowsea.tidesound.album.service.BaseCategoryService;
+import com.rainbowsea.tidesound.common.execption.GuiguException;
 import com.rainbowsea.tidesound.model.album.BaseAttribute;
 import com.rainbowsea.tidesound.model.album.BaseCategory1;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.rainbowsea.tidesound.model.album.BaseCategory2;
+import com.rainbowsea.tidesound.model.album.BaseCategory3;
 import com.rainbowsea.tidesound.model.album.BaseCategoryView;
 import com.rainbowsea.tidesound.vo.category.CategoryVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -122,5 +127,39 @@ public class BaseCategoryServiceImpl extends ServiceImpl<BaseCategory1Mapper, Ba
     public List<BaseAttribute> findAttribute(Long category1Id) {
 
         return baseAttributeMapper.findAttribute(category1Id);
+    }
+
+    @Override
+    public BaseCategoryView getAlbumCategory(Long albumId) {
+
+        return baseCategoryViewMapper.getAlbumCategory(albumId);
+    }
+
+
+    @Override
+    public List<BaseCategory3> findTopBaseCategory3(Long c1Id) {
+
+        // 1.根据一级分类id 查询该一级分类的二级分类集合
+
+        LambdaQueryWrapper<BaseCategory2> wrapper1 = new LambdaQueryWrapper<>();
+        wrapper1.eq(BaseCategory2::getCategory1Id, c1Id);
+        wrapper1.eq(BaseCategory2::getIsDeleted, 0);
+        List<BaseCategory2> baseCategory2s = baseCategory2Mapper.selectList(wrapper1);
+        if (CollectionUtils.isEmpty(baseCategory2s)) {
+            throw new GuiguException(201, "该一级分类下不存在二级分类集合");
+        }
+
+        // 2.过滤二级分类的id
+        List<Long> baseCategory2Ids = baseCategory2s.stream().map(BaseCategory2::getId).collect(Collectors.toList());
+
+
+        // 3.查询三级分类
+        LambdaQueryWrapper<BaseCategory3> wrapper2 = new LambdaQueryWrapper<>();
+        wrapper2.in(BaseCategory3::getCategory2Id, baseCategory2Ids);
+        wrapper2.eq(BaseCategory3::getIsTop, 1);  // 置顶展示的三级分类对象
+        wrapper2.eq(BaseCategory3::getIsDeleted, 0);
+        wrapper2.last("limit 7");
+        List<BaseCategory3> category3s = baseCategory3Mapper.selectList(wrapper2);
+        return category3s;
     }
 }

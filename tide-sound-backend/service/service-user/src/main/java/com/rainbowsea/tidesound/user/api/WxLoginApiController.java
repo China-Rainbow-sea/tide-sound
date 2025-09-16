@@ -59,17 +59,12 @@ public class WxLoginApiController {
     @TingshuLogin // 登录认证
     public Result getUserInfo() {
 
-        // 从ThreadLocal线程当中获取存储了的 userId
+
+        // 从ThreadLocal中获取userId
         Long userId = AuthContextHolder.getUserId();
-
-        UserInfo userInfo = userInfoService.getById(userId);
-        if(userInfo == null) {
-            throw new GuiguException(201,"该用户不存在");
-        }
-
-        UserInfoVo userInfoVo = new UserInfoVo();
-        BeanUtils.copyProperties(userInfo,userInfoVo);
+        UserInfoVo userInfoVo = userInfoService.getUserInfo(userId);
         return Result.ok(userInfoVo);
+
     }
 
 
