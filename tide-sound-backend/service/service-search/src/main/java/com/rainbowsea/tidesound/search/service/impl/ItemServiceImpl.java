@@ -4,11 +4,14 @@ import com.google.common.collect.Lists;
 import com.rainbowsea.tidesound.album.client.AlbumInfoFeignClient;
 import com.rainbowsea.tidesound.common.execption.GuiguException;
 import com.rainbowsea.tidesound.common.result.Result;
+import com.rainbowsea.tidesound.common.util.PinYinUtils;
 import com.rainbowsea.tidesound.model.album.AlbumInfo;
 import com.rainbowsea.tidesound.model.album.BaseCategoryView;
 import com.rainbowsea.tidesound.model.search.AlbumInfoIndex;
 import com.rainbowsea.tidesound.model.search.AttributeValueIndex;
+import com.rainbowsea.tidesound.model.search.SuggestIndex;
 import com.rainbowsea.tidesound.search.repository.AlbumInfoIndexRepository;
+import com.rainbowsea.tidesound.search.repository.SuggestIndexRepository;
 import com.rainbowsea.tidesound.search.service.ItemService;
 import com.rainbowsea.tidesound.user.client.UserInfoFeignClient;
 import com.rainbowsea.tidesound.vo.album.AlbumStatVo;
@@ -40,6 +43,10 @@ public class ItemServiceImpl implements ItemService {
     // 定义操作 ES 实现类
     @Autowired
     private AlbumInfoIndexRepository albumInfoIndexRepository;
+
+    // 定义操作 ES
+    @Autowired
+    private SuggestIndexRepository suggestIndexRepository;
 
 
     @Autowired
@@ -169,6 +176,21 @@ public class ItemServiceImpl implements ItemService {
 
         log.info("专辑:{}上架到es耗时：{}ms", albumId, endTime - startTime);
         albumInfoIndexRepository.save(albumInfoIndex);
+
+
+
+        // 像 suggestInfo 索引库中保存数据
+
+        SuggestIndex suggestIndex = new SuggestIndex();
+        suggestIndex.setId(albumInfoIndex.getId().toString());
+        suggestIndex.setTitle(albumInfoIndex.getAlbumTitle());
+
+        // 专辑标题：我喜欢纯音乐
+        suggestIndex.setKeyword(new Completion(new String[]{albumInfoIndex.getAlbumTitle()}));  // 我喜欢纯音乐
+        suggestIndex.setKeywordPinyin(new Completion(new String[]{PinYinUtils.toHanyuPinyin(albumInfoIndex.getAlbumTitle())}));  //  woxihuhancunyinyue
+        suggestIndex.setKeywordSequence(new Completion(new String[]{PinYinUtils.getFirstLetter(albumInfoIndex.getAlbumTitle())})); // wxhcyy
+        suggestIndexRepository.save(suggestIndex);
+
 
     }
 

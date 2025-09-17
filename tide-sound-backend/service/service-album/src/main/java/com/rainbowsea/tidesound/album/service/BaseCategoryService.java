@@ -51,4 +51,13 @@ public interface BaseCategoryService extends IService<BaseCategory1> {
      * @return
      */
     List<BaseCategory3> findTopBaseCategory3(Long c1Id);
+
+    /**
+     * 根据一级分类id查询孩子【二级分类和三级分类】
+     *
+     * @param c1Id
+     * @return
+     */
+    CategoryVo getBaseCategoryListByC1Id(Long c1Id);
+
 }

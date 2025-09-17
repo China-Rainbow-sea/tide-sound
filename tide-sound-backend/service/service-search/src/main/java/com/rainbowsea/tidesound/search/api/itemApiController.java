@@ -1,8 +1,10 @@
 package com.rainbowsea.tidesound.search.api;
 
 import com.rainbowsea.tidesound.common.result.Result;
+import com.rainbowsea.tidesound.query.search.AlbumIndexQuery;
 import com.rainbowsea.tidesound.search.service.ItemService;
 import com.rainbowsea.tidesound.search.service.SearchService;
+import com.rainbowsea.tidesound.vo.search.AlbumSearchResponseVo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,11 +12,13 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Tag(name = "专辑详情管理")
 @RestController
@@ -28,6 +32,26 @@ public class itemApiController {
 
 	@Autowired
 	private SearchService searchService;
+
+	// Request URL: http://192.168.200.1:8500/api/search/albumInfo/completeSuggest/y
+	@GetMapping("/completeSuggest/{input}")
+	@Operation(summary = "智能提示词")
+	public Result completeSuggest(@PathVariable(value = "input") String input) {
+		Set<String> set = searchService.completeSuggest(input);
+		return Result.ok(set);
+	}
+
+
+
+	//  http://192.168.200.1:8500/api/search/albumInfo
+	@PostMapping
+	@Operation(summary = "带条件的搜索")
+	public Result search(@RequestBody AlbumIndexQuery albumIndexQuery) {
+
+		AlbumSearchResponseVo albumSearchResponseVo = searchService.search(albumIndexQuery);
+		return Result.ok(albumSearchResponseVo);
+	}
+
 
 
 	// Request URL: http://192.168.200.1:8500/api/search/albumInfo/channel/1

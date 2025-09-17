@@ -1,0 +1,92 @@
+GET   /albuminfo/_search
+{
+  "query": {
+    "bool": {
+      "should": [
+        {
+          "match": {
+            "albumTitle": "音乐"
+          }
+        },
+        {
+          "match": {
+            "albumIntro": "音乐"
+          }
+        },
+        {
+          "match": {
+            "announcerName": "音乐"
+          }
+        }
+
+      ],
+      "must": [
+        {
+          "term": {
+            "category1Id": {
+              "value": "2"
+            }
+          }
+        },
+        {
+          "term": {
+            "category2Id": {
+              "value": "104"
+            }
+          }
+        },
+        {
+          "term": {
+            "category3Id": {
+              "value": "1019"
+            }
+          }
+        },
+        {
+          "nested": {
+            "path": "attributeValueIndexList",
+            "query": {
+              "bool": {
+                "must": [
+                  {
+                    "term": {
+                      "attributeValueIndexList.attributeId": {
+                        "value": "1"
+                      }
+                    }
+                  },
+                  {
+                    "term": {
+                      "attributeValueIndexList.valueId": {
+                        "value": "2"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+
+    }
+  },
+  "from": 0,
+  "size": 3,
+  "sort": [
+    {
+      "hotScore": {
+        "order": "asc"
+      }
+    }
+  ],
+  "highlight": {
+    "fields": {
+      "albumTitle": {
+
+      }
+    },
+    "pre_tags": ["<font style='color:red'>"],
+    "post_tags": ["</font>"]
+  }
+}

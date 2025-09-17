@@ -56,5 +56,17 @@ public class BaseCategoryApiController {
         return Result.ok(category3s);
     }
 
+
+    // Request URL: http://192.168.200.1:8500/api/album/category/getBaseCategoryList/1
+    @GetMapping("/getBaseCategoryList/{c1Id}")
+    @Operation(summary = "根据一级分类id查询孩子【二级分类和三级分类】")
+    public Result getBaseCategoryList(@PathVariable(value = "c1Id") Long c1Id) {
+
+
+        CategoryVo categoryVo = baseCategoryService.getBaseCategoryListByC1Id(c1Id);
+        return Result.ok(categoryVo);
+
+    }
+
 }
 

@@ -18,10 +18,10 @@ public class SuggestIndex {
     private String id;
 
     @Field(type = FieldType.Text, analyzer = "standard")
-    private String title;
+    private String title;   // 显示 补的人
 
     @CompletionField(analyzer = "standard", searchAnalyzer = "standard", maxInputLength = 20)
-    private Completion keyword;
+    private Completion keyword;   // 直接将标题内容传进去
 
     @CompletionField(analyzer = "standard", searchAnalyzer = "standard", maxInputLength = 20)
     private Completion keywordPinyin;

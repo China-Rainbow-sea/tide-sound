@@ -162,4 +162,56 @@ public class BaseCategoryServiceImpl extends ServiceImpl<BaseCategory1Mapper, Ba
         List<BaseCategory3> category3s = baseCategory3Mapper.selectList(wrapper2);
         return category3s;
     }
+
+    @Override
+    public CategoryVo getBaseCategoryListByC1Id(Long c1Id) {
+
+
+        // 1.根据一级分类id查询一级分类对象
+        BaseCategory1 baseCategory1 = baseCategory1Mapper.selectById(c1Id);
+        if (baseCategory1 == null) {
+            throw new GuiguException(201, "该一级分类对象不存在");
+        }
+
+
+        CategoryVo categoryVo1 = new CategoryVo();  // 一级分类对象
+        categoryVo1.setCategoryId(c1Id);
+        categoryVo1.setCategoryName(baseCategory1.getName());
+
+        // 2.根据一级分类id查询二级分类集合
+        LambdaQueryWrapper<BaseCategory2> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(BaseCategory2::getCategory1Id, c1Id);
+        wrapper.eq(BaseCategory2::getIsDeleted, 0);
+        List<BaseCategory2> baseCategory2s = baseCategory2Mapper.selectList(wrapper);
+        if (CollectionUtils.isEmpty(baseCategory2s)) {
+            throw new GuiguException(201, "该一级分类下不存在二级分类集合");
+        }
+
+
+        List<CategoryVo> category1Child = new ArrayList<>();
+        for (BaseCategory2 baseCategory2 : baseCategory2s) {
+            CategoryVo category2Vo = new CategoryVo();  // 二级分类对象
+            category2Vo.setCategoryId(baseCategory2.getId()); // 二级分类id
+            category2Vo.setCategoryName(baseCategory2.getName()); // 二级分类的名字
+
+            LambdaQueryWrapper<BaseCategory3> wrapper1 = new LambdaQueryWrapper<>();
+            wrapper1.eq(BaseCategory3::getCategory2Id, baseCategory2.getId());
+            wrapper1.eq(BaseCategory3::getIsDeleted, 0);
+            List<BaseCategory3> category3s = baseCategory3Mapper.selectList(wrapper1);
+            List<CategoryVo> category2Child = new ArrayList<>();
+            for (BaseCategory3 category3 : category3s) {
+                CategoryVo category3Vo = new CategoryVo();  // 三级分类对象
+                category3Vo.setCategoryId(category3.getId());
+                category3Vo.setCategoryName(category3.getName());
+                category3Vo.setCategoryChild(Lists.newArrayList());
+                category2Child.add(category3Vo);
+            }
+            category2Vo.setCategoryChild(category2Child); // 二级分类的孩子
+            category1Child.add(category2Vo);
+        }
+
+        categoryVo1.setCategoryChild(category1Child); // 一级分类的孩子
+        // 返回一级分类对象
+        return categoryVo1;
+    }
 }

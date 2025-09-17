@@ -1,0 +1,144 @@
+PUT test1
+{
+  "mappings": {
+    "properties": {
+      "fullname": {
+        "type": "keyword"
+      },
+      "keyword": {
+        "type": "completion"
+      },
+      "pinyin":{
+        "type": "completion"
+      },
+      "firstLetter":{
+        "type": "completion"
+      }
+    }
+  }
+}
+
+DELETE   test1
+
+
+
+POST test1/_doc
+{
+  "fullname": "周星驰",
+  "keyword": ["周"],
+  "pinyin":["zhou"],
+  "firstLetter":["z"]
+
+}
+POST test1/_doc
+{
+  "fullname": "许嵩",
+  "keyword": ["许"],
+  "pinyin":["xu"],
+  "firstLetter":["x"]
+}
+POST test1/_doc
+{
+  "fullname": "李宇春",
+  "keyword": ["李"],
+  "pinyin":["li"],
+  "firstLetter":["l"]
+}
+POST test1/_doc
+{
+  "fullname": "李强",
+  "keyword": ["李"],
+  "pinyin":["li"],
+  "firstLetter":["l"]
+}
+POST test1/_doc
+{
+  "fullname": "李明",
+  "keyword": ["李"],
+  "pinyin":["li"],
+  "firstLetter":["l"]
+}
+POST test1/_doc
+{
+  "fullname": "梨花开满堂",
+  "keyword": ["梨"],
+  "pinyin":["li"],
+  "firstLetter":["l"]
+}
+
+
+GET   /test1/_search
+
+
+
+GET test1/_search
+{
+  "suggest": {
+    "abc": {
+      "prefix": "l",
+      "completion": {
+        "field": "firstLetter"
+      }
+    }
+  }
+
+}
+
+
+
+GET test1/_search
+{
+  "suggest": {
+    "abc": {
+      "prefix": "li",
+      "completion": {
+        "field": "pinyin"
+      }
+    }
+  }
+
+}
+
+
+
+
+# 检索前缀是李的 找到李开头的文档然后取出fullname
+GET test1/_search
+{
+"suggest": {
+"abc": {
+"prefix": "李",
+"completion": {
+"field": "keyword"
+}
+}
+}
+
+}
+
+
+GET   test1/_search
+{
+"suggest": {
+"abc": {
+"prefix": "李",
+"completion": {
+"field": "keyword"
+}
+},
+"bcd": {
+"prefix": "li",
+"completion": {
+"field": "pinyin"
+}
+},
+"cde": {
+"prefix": "l",
+"completion": {
+"field": "firstLetter"
+}
+}
+
+}
+
+}
