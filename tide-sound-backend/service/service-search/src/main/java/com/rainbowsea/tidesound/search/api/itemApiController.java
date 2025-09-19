@@ -4,6 +4,7 @@ import com.rainbowsea.tidesound.common.result.Result;
 import com.rainbowsea.tidesound.query.search.AlbumIndexQuery;
 import com.rainbowsea.tidesound.search.service.ItemService;
 import com.rainbowsea.tidesound.search.service.SearchService;
+import com.rainbowsea.tidesound.vo.search.AlbumInfoIndexVo;
 import com.rainbowsea.tidesound.vo.search.AlbumSearchResponseVo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,6 +33,33 @@ public class itemApiController {
 
 	@Autowired
 	private SearchService searchService;
+
+	// Request URL: http://192.168.200.1:8500/api/search/albumInfo/findRankingList/1/playStatNum
+	@GetMapping("/findRankingList/{c1Id}/{dimension}")
+	@Operation(summary = "查询排行榜")
+	public Result findRankingList(@PathVariable(value = "c1Id") Long c1Id,
+								  @PathVariable(value = "dimension") String dimension) {
+
+		List<AlbumInfoIndexVo> albumInfoIndexVoList = itemService.findRankingList(c1Id, dimension);
+
+		return Result.ok(albumInfoIndexVoList);
+	}
+
+	@PostMapping("/preRankingToCache")
+	@Operation(summary = "提前将Es中的排行榜数据缓存到Redis中")
+	public Result preRankingToCache() {
+		itemService.preRankingToCache();
+		return Result.ok();
+	}
+
+	// Request URL: http://192.168.200.1:8500/api/search/albumInfo/936
+	@GetMapping("/{albumId}")
+	@Operation(summary = "根据专辑id查询专辑详情")
+	public Result getAlbumInfo(@PathVariable(value = "albumId") Long albumId) {
+		Map<String, Object> result = itemService.getAlbumInfo(albumId);
+		return Result.ok(result);
+	}
+
 
 	// Request URL: http://192.168.200.1:8500/api/search/albumInfo/completeSuggest/y
 	@GetMapping("/completeSuggest/{input}")

@@ -60,4 +60,10 @@ public interface BaseCategoryService extends IService<BaseCategory1> {
      */
     CategoryVo getBaseCategoryListByC1Id(Long c1Id);
 
+    /**
+     * 查询全平台的一级分类id集合
+     *
+     * @return
+     */
+    List<Long> getAllCategory1Id();
 }

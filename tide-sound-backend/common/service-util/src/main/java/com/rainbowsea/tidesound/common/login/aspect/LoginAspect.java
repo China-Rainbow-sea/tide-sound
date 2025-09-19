@@ -5,12 +5,14 @@ import com.alibaba.fastjson.JSONObject;
 import com.rainbowsea.tidesound.common.constant.PublicConstant;
 import com.rainbowsea.tidesound.common.constant.RedisConstant;
 import com.rainbowsea.tidesound.common.execption.GuiguException;
+import com.rainbowsea.tidesound.common.login.annotation.TingshuLogin;
 import com.rainbowsea.tidesound.common.result.ResultCodeEnum;
 import com.rainbowsea.tidesound.common.util.AuthContextHolder;
 import jakarta.servlet.http.HttpServletRequest;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.jwt.Jwt;
@@ -21,6 +23,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.util.StringUtils;
 
+import java.lang.reflect.Method;
 import java.util.Map;
 
 /**
@@ -45,6 +48,17 @@ public class LoginAspect {
         // 1.获取请求中的令牌
         String jsonWebToken = getJsonWebToken();
 
+
+        // 2.获取目标方法的注解以及属性值
+        Boolean isLogin = getMethodLoginAnnotationValue(pjp);
+        if (!isLogin) {   // 不一定要登录
+            // 如果你要登录了也即带了token  那么也要把用户id传过来
+            if (StringUtils.isEmpty(jsonWebToken)) {
+                return pjp.proceed();
+            }
+        }
+
+
         // 3. 判断是否携带了令牌（如果携带令牌还将载荷中的数据获取到）
         Long userId = checkTokenAndGetUserId(jsonWebToken);
 
@@ -62,6 +76,30 @@ public class LoginAspect {
 
         // 5. 返回结果
         return retVal;
+    }
+
+    /**
+     * 获取目标方法的注解上的属性值
+     * @param pjp
+     * @return
+     */
+    private Boolean getMethodLoginAnnotationValue(ProceedingJoinPoint pjp) {
+
+        // 1.获取方法签名对象
+        MethodSignature methodSignature = (MethodSignature) pjp.getSignature();
+
+        // 2.获取方法对象
+        Method method = methodSignature.getMethod();
+
+        // 3.获取方法上的TingshuLogin注解对象
+        TingshuLogin annotation = method.getAnnotation(TingshuLogin.class);
+
+        // 4.获取注解对象的属性值
+        boolean required = annotation.required();
+
+        // 5.返回
+        return required;
+
     }
 
 

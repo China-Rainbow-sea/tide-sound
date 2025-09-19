@@ -65,4 +65,10 @@ public class AlbumInfoDegradeFeignClient implements AlbumInfoFeignClient {
         return Result.fail();
     }
 
+    @Override
+    public Result<List<Long>> getAllCategory1Id() {
+        return Result.fail();
+    }
+
+
 }

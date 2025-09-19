@@ -7,6 +7,8 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
+import java.util.Map;
+
 /**
  * <p>
  * 产品列表API接口
@@ -27,4 +29,25 @@ public interface UserInfoFeignClient {
     @GetMapping("/getUserInfo/{userId}")
     Result<UserInfoVo> getUserInfo(@PathVariable(value = "userId") Long userId);
 
+
+    /**
+     * 获取用户付费专辑信息
+     * @param userId
+     * @param albumId
+     * @return
+     */
+    @GetMapping("/getUserPaidAlbumTrack/{userId}/{albumId}")
+    Result<Map<Long, String>> getUserPaidAlbumTrack(@PathVariable(value = "userId") Long userId,
+                                                    @PathVariable(value = "albumId") Long albumId);
+
+
+    /**
+     * 获得用户付费专辑
+     * @param userId
+     * @param albumId
+     * @return
+     */
+    @GetMapping("/getUserPaidAlbum/{userId}/{albumId}")
+    Result<Boolean> getUserPaidAlbum(@PathVariable(value = "userId") Long userId,
+                                     @PathVariable(value = "albumId") Long albumId);
 }

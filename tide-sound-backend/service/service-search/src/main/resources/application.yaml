@@ -45,4 +45,9 @@ spring:
 
 
 
-
+# 线程池的配置
+app:
+  threadpool:
+    corePoolSize: 100
+    maxPoolSize: 150
+    queueSize: 1000

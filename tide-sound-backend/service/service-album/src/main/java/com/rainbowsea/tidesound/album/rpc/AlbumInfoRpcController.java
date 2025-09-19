@@ -33,6 +33,18 @@ public class AlbumInfoRpcController {
 
 
     /**
+     * 查询全平台的一级分类 id
+     * @return
+     */
+    @GetMapping("/getAllCategory1Id")
+    Result<List<Long>> getAllCategory1Id() {
+
+        List<Long> c1Ids = baseCategoryService.getAllCategory1Id();
+        return Result.ok(c1Ids);
+    }
+
+
+    /**
      * 根据专辑id获取基本该专辑 3级类别列表
      * @param c1Id
      * @return

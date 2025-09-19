@@ -62,4 +62,11 @@ public interface AlbumInfoFeignClient {
     @GetMapping("/getBaseCategory3ListByC1Id/{albumId}")
     Result<List<BaseCategory3>> getBaseCategory3ListByC1Id(@PathVariable(value = "albumId") Long c1Id);
 
+    /**
+     * 查询全平台的一级分类 id
+     * @return
+     */
+    @GetMapping("/getAllCategory1Id")
+    Result<List<Long>> getAllCategory1Id();
+
 }

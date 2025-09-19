@@ -34,4 +34,21 @@ public interface UserInfoService extends IService<UserInfo> {
      * @return
      */
     UserInfoVo getUserInfo(Long userId);
+
+    /**
+     * 查询用户买过当前专辑下的声音
+     * @param userId
+     * @param albumId
+     * @return
+     */
+    Map<Long, String> getUserPaidAlbumTrack(Long userId, Long albumId);
+
+
+    /**
+     * 查询用户买过该专辑
+     * @param userId
+     * @param albumId
+     * @return
+     */
+    Boolean getUserPaidAlbum(Long userId, Long albumId);
 }

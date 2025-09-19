@@ -7,12 +7,18 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class VipServiceConfigServiceImpl extends ServiceImpl<VipServiceConfigMapper, VipServiceConfig> implements VipServiceConfigService {
 
-	@Autowired
-	private VipServiceConfigMapper vipServiceConfigMapper;
+    @Autowired
+    private VipServiceConfigMapper vipServiceConfigMapper;
 
 
+    @Override
+    public List<VipServiceConfig> findAll() {
+        return vipServiceConfigMapper.selectList(null);
+    }
 }

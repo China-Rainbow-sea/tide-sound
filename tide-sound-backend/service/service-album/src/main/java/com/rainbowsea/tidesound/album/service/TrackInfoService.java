@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.rainbowsea.tidesound.model.album.TrackInfo;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.rainbowsea.tidesound.query.album.TrackInfoQuery;
+import com.rainbowsea.tidesound.vo.album.AlbumTrackListVo;
 import com.rainbowsea.tidesound.vo.album.TrackInfoVo;
 import com.rainbowsea.tidesound.vo.album.TrackListVo;
 import org.springframework.web.multipart.MultipartFile;
@@ -48,4 +49,12 @@ public interface TrackInfoService extends IService<TrackInfo> {
      * @param trackId
      */
     void removeTrackInfo(Long trackId);
+
+    /**
+     * 根据专辑 id 查询专辑下声音列表且显示付费图标
+     * @param albumTrackListVoPage
+     * @param albumId
+     * @return
+     */
+    IPage<AlbumTrackListVo> findAlbumTrackPage(IPage<AlbumTrackListVo> albumTrackListVoPage, Long albumId);
 }

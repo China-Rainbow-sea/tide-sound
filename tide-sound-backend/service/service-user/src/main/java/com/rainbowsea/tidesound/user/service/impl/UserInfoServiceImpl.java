@@ -12,7 +12,11 @@ import com.rainbowsea.tidesound.common.rabbit.constant.MqConst;
 import com.rainbowsea.tidesound.common.rabbit.service.RabbitService;
 import com.rainbowsea.tidesound.common.util.AuthContextHolder;
 import com.rainbowsea.tidesound.model.user.UserInfo;
+import com.rainbowsea.tidesound.model.user.UserPaidAlbum;
+import com.rainbowsea.tidesound.model.user.UserPaidTrack;
 import com.rainbowsea.tidesound.user.mapper.UserInfoMapper;
+import com.rainbowsea.tidesound.user.mapper.UserPaidAlbumMapper;
+import com.rainbowsea.tidesound.user.mapper.UserPaidTrackMapper;
 import com.rainbowsea.tidesound.user.service.UserInfoService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.rainbowsea.tidesound.vo.user.UserInfoVo;
@@ -33,17 +37,19 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> implements UserInfoService {
 
-	@Autowired
-	private UserInfoMapper userInfoMapper;
+    @Autowired
+    private UserInfoMapper userInfoMapper;
 
     // 微信小程序SDK服务,授权的登录认证
     @Autowired
@@ -64,17 +70,24 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
     @Autowired
     private RabbitService rabbitService;
 
+    @Autowired
+    private UserPaidTrackMapper userPaidTrackMapper;
+
+    @Autowired
+    private UserPaidAlbumMapper userPaidAlbumMapper;
+
 
     /**
      * 返回微信登录成功后的 Map ,Map 当中存放了JWT认证的 token 信息
+     *
      * @param code
      * @return
      */
     @Override
     public Map<String, Object> wxLogin(String code) {
         // 1. 判断 code 码是否存在
-        if(StringUtils.isEmpty(code)) {
-            throw new GuiguException(201,"code 不存在");
+        if (StringUtils.isEmpty(code)) {
+            throw new GuiguException(201, "code 不存在");
         }
 
 
@@ -104,10 +117,10 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 
         // 3. 调用 openId 查询用户信息
         LambdaQueryWrapper<UserInfo> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(UserInfo::getWxOpenId,openid);
+        queryWrapper.eq(UserInfo::getWxOpenId, openid);
         UserInfo userInfo = userInfoMapper.selectOne(queryWrapper);
 
-        if(userInfo == null) {
+        if (userInfo == null) {
             // 1.像 user_info表中插入用户（注册用户信息）
             userInfo = new UserInfo();
             userInfo.setWxOpenId(openid);
@@ -139,25 +152,26 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
         // 4. 生成一个 token 值返回给前端
         // 定义一个载荷(就是存放含有特别属性信息的 token 信息)
         String token = getJsonWebToken(openid, userInfo.getId());
-        map.put("token",token) ; // 注意这 key 必须是 token 不可以是其他的，因为前端写死了,写其他的前端就获取不到这个token了
-        map.put("refreshToken",token); // 假装有一个(因为前端只是做了一个 token 设计,没有做双 token)
+        map.put("token", token); // 注意这 key 必须是 token 不可以是其他的，因为前端写死了,写其他的前端就获取不到这个token了
+        map.put("refreshToken", token); // 假装有一个(因为前端只是做了一个 token 设计,没有做双 token)
 
 
         // 5. 将 token 存入到Redis 当中
         String accessTokenKey = RedisConstant.USER_LOGIN_KEY_PREFIX + openid;
         refreshTokenKey = RedisConstant.USER_LOGIN_KEY_PREFIX + openid;
-        redisTemplate.opsForValue().set(accessTokenKey,token,30, TimeUnit.MINUTES); // 30分钟
-        redisTemplate.opsForValue().set(refreshTokenKey,token,1,TimeUnit.DAYS);  // 一天
+        redisTemplate.opsForValue().set(accessTokenKey, token, 30, TimeUnit.MINUTES); // 30分钟
+        redisTemplate.opsForValue().set(refreshTokenKey, token, 1, TimeUnit.DAYS);  // 一天
         return map;
     }
 
     /**
      * 生成一个载荷(含有我们自定义信息属性内容的载荷)的 token 值
+     *
      * @param openid
      * @param userId
      * @return
      */
-    private String getJsonWebToken(String openid,Long userId) {
+    private String getJsonWebToken(String openid, Long userId) {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("id", userId);
         jsonObject.put("openId", openid);
@@ -177,6 +191,7 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 
     /**
      * 获取新的第二个 token 令牌的 token 值（双token 设计），前端没有实现
+     *
      * @return
      */
     @Override
@@ -249,6 +264,27 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
         BeanUtils.copyProperties(userInfo, userInfoVo);
 
         return userInfoVo;
+    }
+
+    @Override
+    public Map<Long, String> getUserPaidAlbumTrack(Long userId, Long albumId) {
+
+        LambdaQueryWrapper<UserPaidTrack> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(UserPaidTrack::getUserId, userId);
+        wrapper.eq(UserPaidTrack::getAlbumId, albumId);
+        List<UserPaidTrack> userPaidTracks = userPaidTrackMapper.selectList(wrapper);
+
+        Map<Long, String> map = userPaidTracks.stream().collect(Collectors.toMap(UserPaidTrack::getTrackId, v -> "1"));
+        return map;
+    }
+
+    @Override
+    public Boolean getUserPaidAlbum(Long userId, Long albumId) {
+        LambdaQueryWrapper<UserPaidAlbum> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(UserPaidAlbum::getUserId, userId);
+        wrapper.eq(UserPaidAlbum::getAlbumId, albumId);
+        UserPaidAlbum userPaidAlbum = userPaidAlbumMapper.selectOne(wrapper);
+        return userPaidAlbum != null;
     }
 
 }

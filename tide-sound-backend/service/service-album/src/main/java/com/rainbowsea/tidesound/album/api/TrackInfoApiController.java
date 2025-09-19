@@ -7,6 +7,7 @@ import com.rainbowsea.tidesound.common.login.annotation.TingshuLogin;
 import com.rainbowsea.tidesound.common.result.Result;
 import com.rainbowsea.tidesound.common.util.AuthContextHolder;
 import com.rainbowsea.tidesound.query.album.TrackInfoQuery;
+import com.rainbowsea.tidesound.vo.album.AlbumTrackListVo;
 import com.rainbowsea.tidesound.vo.album.TrackInfoVo;
 import com.rainbowsea.tidesound.vo.album.TrackListVo;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,6 +33,23 @@ public class TrackInfoApiController {
 
 	@Autowired
 	private TrackInfoService trackInfoService;
+
+	// 专辑的详情接口：
+	// 1.用户可登录之后 来访问
+	// 2.也可以不登录直接访问
+	@GetMapping("/findAlbumTrackPage/{albumId}/{pn}/{pz}")
+	@Operation(summary = "根据专辑id查询该专辑下声音列表且显示付费图标")
+	@TingshuLogin(required = false)
+	public Result findAlbumTrackPage(@PathVariable(value = "albumId") Long albumId,
+									 @PathVariable(value = "pn") Long pn,
+									 @PathVariable(value = "pz") Long pz) {
+
+
+		IPage<AlbumTrackListVo> albumTrackListVoPage = new Page<>(pn, pz);
+		albumTrackListVoPage = trackInfoService.findAlbumTrackPage(albumTrackListVoPage, albumId);
+		return Result.ok(albumTrackListVoPage);
+	}
+
 
 
 

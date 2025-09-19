@@ -38,5 +38,25 @@
 
 
     </select>
+    <select id="getAlbumTrackListByAlbumIdFromDb" resultType="com.rainbowsea.tidesound.vo.album.AlbumTrackListVo">
+
+        SELECT track_info.id                                                  as trackId,
+               track_info.track_title,
+               track_info.media_duration,
+               track_info.order_num,
+               track_info.create_time,
+               MAX(IF(track_stat.stat_type = '0701', track_stat.stat_num, 0)) AS playStatNum,
+               MAX(IF(track_stat.stat_type = '0704', track_stat.stat_num, 0)) AS commentStatNum
+
+        FROM `track_info`
+                 INNER JOIN track_stat
+                            ON track_info.id = track_stat.track_id
+        WHERE album_id = #{albumId}
+          AND track_info.is_deleted = 0
+        GROUP BY track_info.id
+        ORDER BY track_info.order_num
+
+
+    </select>
 </mapper>
 

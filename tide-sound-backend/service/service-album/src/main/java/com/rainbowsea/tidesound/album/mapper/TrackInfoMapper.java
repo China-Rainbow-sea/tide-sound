@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.rainbowsea.tidesound.model.album.TrackInfo;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.rainbowsea.tidesound.query.album.TrackInfoQuery;
+import com.rainbowsea.tidesound.vo.album.AlbumTrackListVo;
 import com.rainbowsea.tidesound.vo.album.TrackListVo;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -20,5 +21,13 @@ public interface TrackInfoMapper extends BaseMapper<TrackInfo> {
      */
 
     IPage<TrackListVo> findUserTrackPage(@Param("pageParam") IPage<TrackListVo> pageParam, @Param("vo") TrackInfoQuery trackInfoQuery);
+
+    /**
+     * 根据专辑id分页查询该专辑下的声音列表
+     * @param albumTrackListVoPage
+     * @param albumId
+     * @return
+     */
+    IPage<AlbumTrackListVo> getAlbumTrackListByAlbumIdFromDb(@Param("albumTrackListVoPage") IPage<AlbumTrackListVo> albumTrackListVoPage, @Param("albumId") Long albumId);
 
 }

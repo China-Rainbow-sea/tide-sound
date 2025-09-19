@@ -1,7 +1,12 @@
 package com.rainbowsea.tidesound.search.service.impl;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.search.Hit;
+import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
 import com.rainbowsea.tidesound.album.client.AlbumInfoFeignClient;
+import com.rainbowsea.tidesound.common.constant.RedisConstant;
 import com.rainbowsea.tidesound.common.execption.GuiguException;
 import com.rainbowsea.tidesound.common.result.Result;
 import com.rainbowsea.tidesound.common.util.PinYinUtils;
@@ -15,23 +20,35 @@ import com.rainbowsea.tidesound.search.repository.SuggestIndexRepository;
 import com.rainbowsea.tidesound.search.service.ItemService;
 import com.rainbowsea.tidesound.user.client.UserInfoFeignClient;
 import com.rainbowsea.tidesound.vo.album.AlbumStatVo;
+import com.rainbowsea.tidesound.vo.search.AlbumInfoIndexVo;
 import com.rainbowsea.tidesound.vo.user.UserInfoVo;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.elasticsearch.core.suggest.Completion;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -54,6 +71,17 @@ public class ItemServiceImpl implements ItemService {
 
     @Autowired
     private UserInfoFeignClient userInfoFeignClient;
+
+    // java.util.concurrent 包下的
+    @Autowired
+    private ThreadPoolExecutor threadPoolExecutor;
+
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+
+    @Autowired
+    private ElasticsearchClient elasticsearchClient;
+
 
 
     // 这个线程池，默认 4 个线程(因为我们这里线程配合只需要 4 个线程 减减即可)
@@ -215,6 +243,147 @@ public class ItemServiceImpl implements ItemService {
             log.error("专辑批量下架失败");
         }
 
+    }
+
+    /**
+     * 1、异步优化
+     *
+     * @param albumId
+     * @return
+     */
+    @Override
+    public Map<String, Object> getAlbumInfo(Long albumId) {
+
+        // 1.创建Map对象
+        Map<String, Object> map = new HashMap<>();
+
+
+        CompletableFuture<Void> albumStatCompletableFuture = CompletableFuture.runAsync(new Runnable() {
+            @Override
+            public void run() {
+                System.out.println("执行查询专辑统计任务用的线程：" + Thread.currentThread().getName());
+                // 1. 专辑的统计信息
+                Result<AlbumStatVo> albumStatResult = albumInfoFeignClient.getAlbumStat(albumId);
+                AlbumStatVo albumStatVoData = albumStatResult.getData();
+                if (albumStatVoData == null) {
+                    throw new GuiguException(201, "远程查询专辑微服务获取专辑统计信息失败");
+                }
+                map.put("albumStatVo", albumStatVoData);
+            }
+        }, threadPoolExecutor);
+
+        CompletableFuture<Void> viewCompletableFuture = CompletableFuture.runAsync(new Runnable() {
+            @Override
+            public void run() {
+                System.out.println("执行查询专辑分类任务用的线程：" + Thread.currentThread().getName());
+                // 2. 专辑的分类（分类的名字）`
+                Result<BaseCategoryView> albumCategoryResult = albumInfoFeignClient.getAlbumCategory(albumId);
+                BaseCategoryView baseCategoryViewData = albumCategoryResult.getData();
+                if (baseCategoryViewData == null) {
+                    throw new GuiguException(201, "远程查询专辑微服务获取专辑分类信息失败");
+                }
+                map.put("baseCategoryView", baseCategoryViewData);
+            }
+        }, threadPoolExecutor);
+
+
+        CompletableFuture<Long> albumInfoCompletableFuture = CompletableFuture.supplyAsync(new Supplier<Long>() {
+            @Override
+            public Long get() {
+                System.out.println("执行查询专辑基本信息任务用的线程：" + Thread.currentThread().getName());
+                // 3. 专辑基本数据
+                Result<AlbumInfo> albumInfoAndAttrValueResult = albumInfoFeignClient.getAlbumInfoAndAttrValue(albumId);
+                AlbumInfo albumInfoData = albumInfoAndAttrValueResult.getData();
+                if (albumInfoData == null) {
+                    throw new GuiguException(201, "远程查询专辑微服务获取专辑基本信息失败");
+                }
+                map.put("albumInfo", albumInfoData);
+
+                return albumInfoData.getUserId();
+            }
+        }, threadPoolExecutor);
+
+        CompletableFuture<Void> userCompletableFuture = albumInfoCompletableFuture.thenAcceptAsync(new Consumer<Long>() {
+            @Override
+            public void accept(Long userId) {
+                System.out.println("执行查询专辑对应主播任务用的线程：" + Thread.currentThread().getName());
+                // 4.查询专辑对应的主播信息
+                Result<UserInfoVo> userInfoResult = userInfoFeignClient.getUserInfo(userId);
+                UserInfoVo userInfoResultData = userInfoResult.getData();
+                if (userInfoResultData == null) {
+                    throw new GuiguException(201, "远程查询专辑微服务获取专辑基本信息失败");
+                }
+                map.put("announcer", userInfoResultData);
+
+            }
+        }, threadPoolExecutor);
+
+        CompletableFuture.allOf(albumStatCompletableFuture, viewCompletableFuture, albumInfoCompletableFuture, userCompletableFuture).join();
+
+        return map;
+    }
+
+    @SneakyThrows
+    @Override
+    public void preRankingToCache() {
+
+        // 1.查询全平台的一级分类id
+        Result<List<Long>> c1IdsResult = albumInfoFeignClient.getAllCategory1Id();
+        List<Long> c1IdData = c1IdsResult.getData();
+        if (CollectionUtils.isEmpty(c1IdData)) {
+            throw new GuiguException(201, "远程查询专辑微服务获取一级分类id失败");
+        }
+
+
+        for (Long c1Id : c1IdData) {
+
+            String[] fiveDimension = {"hotScore", "playStatNum", "subscribeStatNum", "buyStatNum", "commentStatNum"};
+            for (String dimension : fiveDimension) {
+                SearchResponse<AlbumInfoIndex> response = elasticsearchClient.search(srb -> srb
+                        .index("albuminfo")
+                        .query(qb -> qb
+                                .term(tqb -> tqb
+                                        .field("category1Id")
+                                        .value  (c1Id)))
+                        .sort(sob -> sob.field(fsb -> fsb.field(dimension)))
+                        .size(10), AlbumInfoIndex.class);
+
+                List<AlbumInfoIndex> albumInfoIndices = new ArrayList<>();
+
+                for (Hit<AlbumInfoIndex> hit : response.hits().hits()) {
+                    AlbumInfoIndex albumInfoIndex = hit.source();
+                    albumInfoIndices.add(albumInfoIndex);
+                }
+
+                // Redis：String  set  zset  hash(大key  小key )  list
+
+                String bigKey = RedisConstant.RANKING_KEY_PREFIX + c1Id;
+                redisTemplate.opsForHash().put(bigKey, dimension, JSONObject.toJSONString(albumInfoIndices));
+            }
+        }
+
+    }
+
+
+    @Override
+    public List<AlbumInfoIndexVo> findRankingList(Long c1Id, String dimension) {
+
+
+        String bigKey = RedisConstant.RANKING_KEY_PREFIX + c1Id;
+        String albumInfoIndexList = (String) redisTemplate.opsForHash().get(bigKey, dimension);
+        if (StringUtils.isEmpty(albumInfoIndexList)) {
+            throw new GuiguException(201, "排行榜信息不存在");
+        }
+
+        List<AlbumInfoIndex> albumInfoIndices = JSONObject.parseArray(albumInfoIndexList, AlbumInfoIndex.class);
+
+        List<AlbumInfoIndexVo> albumInfoIndexVoList = albumInfoIndices.stream().map(albumInfoIndex -> {
+            AlbumInfoIndexVo albumInfoIndexVo = new AlbumInfoIndexVo();
+            BeanUtils.copyProperties(albumInfoIndex, albumInfoIndexVo);
+            return albumInfoIndexVo;
+        }).collect(Collectors.toList());
+
+        return albumInfoIndexVoList;
     }
 
     /**

@@ -214,4 +214,13 @@ public class BaseCategoryServiceImpl extends ServiceImpl<BaseCategory1Mapper, Ba
         // 返回一级分类对象
         return categoryVo1;
     }
+
+    @Override
+    public List<Long> getAllCategory1Id() {
+
+        List<BaseCategory1> baseCategory1s = baseCategory1Mapper.selectList(null);
+        List<Long> c1Ids = baseCategory1s.stream().map(baseCategory1 -> baseCategory1.getId()).collect(Collectors.toList());
+        return c1Ids;
+    }
+
 }
