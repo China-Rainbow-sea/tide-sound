@@ -11,6 +11,7 @@ import com.rainbowsea.tidesound.album.service.AlbumInfoService;
 import com.rainbowsea.tidesound.common.constant.SystemConstant;
 import com.rainbowsea.tidesound.common.execption.GuiguException;
 import com.rainbowsea.tidesound.common.rabbit.constant.MqConst;
+import com.rainbowsea.tidesound.common.rabbit.service.RabbitService;
 import com.rainbowsea.tidesound.common.util.AuthContextHolder;
 import com.rainbowsea.tidesound.model.album.AlbumAttributeValue;
 import com.rainbowsea.tidesound.model.album.AlbumInfo;
@@ -50,6 +51,11 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 
     @Autowired
     private TrackInfoMapper trackInfoMapper;
+
+
+    // 操作 RabbitMQ
+    @Autowired
+    private RabbitService rabbitService;
 
 
     @Autowired
@@ -112,6 +118,15 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
         // tempService.saveAlbumStat(albumInfo.getId());  // 代理对象调
         // albumInfoService.saveAlbumStat(albumInfo.getId()); // 代理对象调
         proxyObject.saveAlbumStat(albumInfo.getId()); // 代理对象 (建议这种写法)
+
+
+        // 将专辑同步到ES中（同步rpc、异步消息队列）
+        String isOpen = albumInfoVo.getIsOpen();
+        // 1 表示是公开的专辑，才上传到ES当中
+        if ("1".equals(isOpen)) {
+            rabbitService.sendMessage(MqConst.EXCHANGE_ALBUM, MqConst.ROUTING_ALBUM_UPPER, albumInfo.getId().toString());
+            log.info("专辑微服务发送消息到专辑上架队列成功");
+        }
 
     }
 
@@ -192,6 +207,18 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
         if (!CollectionUtils.isEmpty(attributeValues)) {
             boolean b = albumAttributeValueService.saveBatch(attributeValues);
             log.info("保存专辑标签信息：{}", b ? "success" : "fail");
+        }
+
+
+        // 专辑是否公开（要不要同步到es中在首页展示）
+        String isOpen = albumInfoVo.getIsOpen();
+
+        if("1".equals(isOpen)){
+            rabbitService.sendMessage(MqConst.EXCHANGE_ALBUM, MqConst.ROUTING_ALBUM_UPPER, albumInfo.getId().toString());
+            log.info("专辑微服务发送消息到专辑上架队列成功");
+        }else{
+            rabbitService.sendMessage(MqConst.EXCHANGE_ALBUM, MqConst.ROUTING_ALBUM_LOWER, albumInfo.getId().toString());
+            log.info("专辑微服务发送消息到专辑下架队列成功");
         }
 
 

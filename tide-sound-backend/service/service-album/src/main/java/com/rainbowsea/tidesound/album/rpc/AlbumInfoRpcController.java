@@ -2,14 +2,18 @@ package com.rainbowsea.tidesound.album.rpc;
 
 import com.rainbowsea.tidesound.album.service.AlbumInfoService;
 import com.rainbowsea.tidesound.album.service.BaseCategoryService;
+import com.rainbowsea.tidesound.album.service.TrackInfoService;
 import com.rainbowsea.tidesound.common.result.Result;
 import com.rainbowsea.tidesound.model.album.AlbumInfo;
 import com.rainbowsea.tidesound.model.album.BaseCategory3;
 import com.rainbowsea.tidesound.model.album.BaseCategoryView;
 import com.rainbowsea.tidesound.vo.album.AlbumStatVo;
+import com.rainbowsea.tidesound.vo.album.TrackListVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -30,6 +34,25 @@ public class AlbumInfoRpcController {
 
     @Autowired
     private BaseCategoryService baseCategoryService;
+
+    @Autowired
+    private TrackInfoService trackInfoService;
+
+
+
+    /**
+     * 按id获取专辑下的声音列表
+     * @param trackIdList
+     * @return
+     */
+    @PostMapping("/getTrackListByIds")
+    Result<List<TrackListVo>> getTrackListByIds(@RequestBody List<Long> trackIdList) {
+
+        List<TrackListVo> trackListVoList = trackInfoService.getTrackListByIds(trackIdList);
+
+        return Result.ok(trackListVoList);
+
+    }
 
 
     /**

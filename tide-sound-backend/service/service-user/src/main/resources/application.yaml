@@ -29,6 +29,12 @@ spring:
       port: 6379
       password: root
       database: 0
+    # MongoDB
+    mongodb:
+      host: 192.168.76.15
+      port: 27017
+      database: tingshu  #不会自动创建该库 只有等这个库中有数据进入之后 才会创建出来
+
   # RabbitMQ
   rabbitmq:
     host: 192.168.76.15

@@ -6,9 +6,12 @@ import com.rainbowsea.tidesound.model.album.AlbumInfo;
 import com.rainbowsea.tidesound.model.album.BaseCategory3;
 import com.rainbowsea.tidesound.model.album.BaseCategoryView;
 import com.rainbowsea.tidesound.vo.album.AlbumStatVo;
+import com.rainbowsea.tidesound.vo.album.TrackListVo;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
@@ -68,5 +71,15 @@ public interface AlbumInfoFeignClient {
      */
     @GetMapping("/getAllCategory1Id")
     Result<List<Long>> getAllCategory1Id();
+
+
+    /**
+     * 按id获取专辑声音列表
+     * @param trackIdList
+     * @return
+     */
+    @PostMapping("/getTrackListByIds")
+    Result<List<TrackListVo>> getTrackListByIds(@RequestBody List<Long> trackIdList);
+
 
 }

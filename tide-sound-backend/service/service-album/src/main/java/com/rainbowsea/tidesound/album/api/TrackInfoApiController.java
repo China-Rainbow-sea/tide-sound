@@ -10,6 +10,7 @@ import com.rainbowsea.tidesound.query.album.TrackInfoQuery;
 import com.rainbowsea.tidesound.vo.album.AlbumTrackListVo;
 import com.rainbowsea.tidesound.vo.album.TrackInfoVo;
 import com.rainbowsea.tidesound.vo.album.TrackListVo;
+import com.rainbowsea.tidesound.vo.album.TrackStatVo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +34,20 @@ public class TrackInfoApiController {
 
 	@Autowired
 	private TrackInfoService trackInfoService;
+
+
+
+	// Request URL: http://192.168.200.1:8500/api/album/trackInfo/getTrackStatVo/36362
+	@GetMapping(value = "/getTrackStatVo/{trackId}")
+	@Operation(summary = "根据声音id查询声音的统计信息")
+	public Result getTrackStatVo(@PathVariable(value = "trackId") Long trackId) {
+
+		TrackStatVo trackStatVo = trackInfoService.getTrackStatVo(trackId);
+		return Result.ok(trackStatVo);
+
+	}
+
+
 
 	// 专辑的详情接口：
 	// 1.用户可登录之后 来访问

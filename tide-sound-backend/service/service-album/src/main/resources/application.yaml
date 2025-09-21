@@ -12,6 +12,9 @@ server:
 
 
 spring:
+#  jackson:  时间 Date 时间对象上的处理
+#    time-zone: GMT+8
+#    date-format: yyyy-MM-dd HH:mm:ss
   # 表示开发环境接入 application-local.yaml 的配置
   profiles:
     active: prod

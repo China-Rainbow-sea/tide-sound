@@ -87,11 +87,7 @@ public class ItemServiceImpl implements ItemService {
     // 这个线程池，默认 4 个线程(因为我们这里线程配合只需要 4 个线程 减减即可)
     ExecutorService executorService = Executors.newFixedThreadPool(4);
 
-    /**
-     * 异步：线程池：（countdownlatch使用）第一次259ms   后面的平均在30ms作用
-     *
-     * @param albumId
-     */
+
     @SneakyThrows
     @Override
     public void albumOnSale(Long albumId) {
@@ -145,7 +141,7 @@ public class ItemServiceImpl implements ItemService {
                     userId = future.get();   // 当前线程会阻塞
                     Result<UserInfoVo> albumInfoVoResult = userInfoFeignClient.getUserInfo(userId);
                     UserInfoVo userInfoVoData = albumInfoVoResult.getData();
-                    org.springframework.util.Assert.notNull(userInfoVoData, "远程调用用户微服务获取用户信息失败");
+                    Assert.notNull(userInfoVoData, "远程调用用户微服务获取用户信息失败");
                     albumInfoIndex.setAnnouncerName(userInfoVoData.getNickname()); // 专辑对应的主播名字
                 } catch (Exception e) {
                     throw new RuntimeException(e);
@@ -206,21 +202,153 @@ public class ItemServiceImpl implements ItemService {
         albumInfoIndexRepository.save(albumInfoIndex);
 
 
-
-        // 像 suggestInfo 索引库中保存数据
+        // 像suggestInfo索引库中保存数据
 
         SuggestIndex suggestIndex = new SuggestIndex();
         suggestIndex.setId(albumInfoIndex.getId().toString());
         suggestIndex.setTitle(albumInfoIndex.getAlbumTitle());
-
         // 专辑标题：我喜欢纯音乐
+
         suggestIndex.setKeyword(new Completion(new String[]{albumInfoIndex.getAlbumTitle()}));  // 我喜欢纯音乐
         suggestIndex.setKeywordPinyin(new Completion(new String[]{PinYinUtils.toHanyuPinyin(albumInfoIndex.getAlbumTitle())}));  //  woxihuhancunyinyue
         suggestIndex.setKeywordSequence(new Completion(new String[]{PinYinUtils.getFirstLetter(albumInfoIndex.getAlbumTitle())})); // wxhcyy
         suggestIndexRepository.save(suggestIndex);
-
-
     }
+
+    /**
+     * 异步：线程池：（countdownlatch使用）第一次259ms   后面的平均在30ms作用
+     *
+     * @param albumId
+     */
+    //@SneakyThrows
+    //@Override
+    //public void albumOnSale(Long albumId) {
+    //
+    //    CountDownLatch countDownLatch = new CountDownLatch(4);  // 其它线程干活的线程数
+    //
+    //    // 1.创建文档对象
+    //    AlbumInfoIndex albumInfoIndex = new AlbumInfoIndex();
+    //
+    //    Long startTime = System.currentTimeMillis();
+    //
+    //    Future<Long> future = executorService.submit(new Callable<Long>() {
+    //        @Override
+    //        public Long call() throws Exception {
+    //            // 2.1 远程查询专辑基本信息
+    //            Result<AlbumInfo> albumInfoResult = albumInfoFeignClient.getAlbumInfoAndAttrValue(albumId);
+    //            AlbumInfo albumInfoData = albumInfoResult.getData();
+    //            if (albumInfoData == null) {
+    //                throw new GuiguException(201, "远程调用专辑微服务获取专辑信息失败");
+    //            }
+    //
+    //            albumInfoIndex.setId(albumInfoData.getId());  // 专辑id
+    //            albumInfoIndex.setAlbumTitle(albumInfoData.getAlbumTitle());   // 专辑标题
+    //            albumInfoIndex.setAlbumIntro(albumInfoData.getAlbumIntro()); // 专辑简介
+    //            albumInfoIndex.setCoverUrl(albumInfoData.getCoverUrl());  // 专辑封面
+    //            albumInfoIndex.setIncludeTrackCount(albumInfoData.getIncludeTrackCount()); // 专辑包含的声音集数
+    //            albumInfoIndex.setIsFinished(albumInfoData.getIsFinished().toString()); // 专辑是否完结
+    //            albumInfoIndex.setPayType(albumInfoData.getPayType()); // 专辑付费类型（免费 vip免费  付费）
+    //            albumInfoIndex.setCreateTime(new Date());  // 专辑保存到es的时间
+    //
+    //            List<AttributeValueIndex> attributeValueIndexs = albumInfoData.getAlbumAttributeValueVoList().stream().map(albumAttributeValue -> {
+    //                AttributeValueIndex attributeValueIndex = new AttributeValueIndex();
+    //                attributeValueIndex.setAttributeId(albumAttributeValue.getAttributeId());
+    //                attributeValueIndex.setValueId(albumAttributeValue.getValueId());
+    //                return attributeValueIndex;
+    //            }).collect(Collectors.toList());
+    //            albumInfoIndex.setAttributeValueIndexList(Lists.newArrayList(attributeValueIndexs));   // 专辑的标签
+    //
+    //            countDownLatch.countDown();
+    //            return albumInfoData.getUserId();
+    //        }
+    //    });
+    //
+    //    executorService.execute(new Runnable() {
+    //
+    //        // 2.2 远程查询主播信息
+    //        @Override
+    //        public void run() {
+    //            Long userId = null;
+    //            try {
+    //                userId = future.get();   // 当前线程会阻塞
+    //                Result<UserInfoVo> albumInfoVoResult = userInfoFeignClient.getUserInfo(userId);
+    //                UserInfoVo userInfoVoData = albumInfoVoResult.getData();
+    //                org.springframework.util.Assert.notNull(userInfoVoData, "远程调用用户微服务获取用户信息失败");
+    //                albumInfoIndex.setAnnouncerName(userInfoVoData.getNickname()); // 专辑对应的主播名字
+    //            } catch (Exception e) {
+    //                throw new RuntimeException(e);
+    //            } finally {
+    //                countDownLatch.countDown();
+    //            }
+    //
+    //        }
+    //    });
+    //
+    //
+    //    executorService.execute(new Runnable() {
+    //        // 2.3 远程查询分类信息
+    //        @Override
+    //        public void run() {
+    //            Result<BaseCategoryView> baseCategoryViewResult = albumInfoFeignClient.getAlbumCategory(albumId);
+    //            BaseCategoryView baseCategoryViewData = baseCategoryViewResult.getData();
+    //            Assert.notNull(baseCategoryViewData, "远程调用专辑微服务获取分类信息失败");
+    //
+    //            albumInfoIndex.setCategory1Id(baseCategoryViewData.getCategory1Id()); // 专辑一级分类id
+    //            albumInfoIndex.setCategory2Id(baseCategoryViewData.getCategory2Id()); // 专辑二级分类id
+    //            albumInfoIndex.setCategory3Id(baseCategoryViewData.getCategory3Id()); // 专辑二级分类id
+    //            countDownLatch.countDown();
+    //        }
+    //    });
+    //
+    //
+    //    executorService.execute(new Runnable() {
+    //        // 2.4 远程查询统计信息
+    //        @Override
+    //        public void run() {
+    //            Result<AlbumStatVo> albumStatVoResult = albumInfoFeignClient.getAlbumStat(albumId);
+    //            AlbumStatVo albumStatVoData = albumStatVoResult.getData();
+    //            if (albumStatVoData == null) {
+    //                throw new GuiguException(201, "远程调用专辑微服务获取专辑分类信息失败");
+    //            }
+    //
+    //            Integer commentStatNum = albumStatVoData.getCommentStatNum();
+    //            Integer subscribeStatNum = albumStatVoData.getSubscribeStatNum();
+    //            Integer playStatNum = albumStatVoData.getPlayStatNum();
+    //            Integer buyStatNum = albumStatVoData.getBuyStatNum();
+    //
+    //            albumInfoIndex.setPlayStatNum(playStatNum);  // 专辑的播放量
+    //            albumInfoIndex.setSubscribeStatNum(subscribeStatNum); // 专辑的订阅量
+    //            albumInfoIndex.setBuyStatNum(buyStatNum); // 专辑的购买量
+    //            albumInfoIndex.setCommentStatNum(commentStatNum); // 专辑的评论数
+    //            Double hotScore = new Random().nextDouble(); // 测试环境用
+    //            albumInfoIndex.setHotScore(hotScore); // 专辑热度值
+    //            countDownLatch.countDown();
+    //        }
+    //    });
+    //
+    //    countDownLatch.await();
+    //    // 3.将文档对象存储到es中
+    //    Long endTime = System.currentTimeMillis();
+    //
+    //    log.info("专辑:{}上架到es耗时：{}ms", albumId, endTime - startTime);
+    //    albumInfoIndexRepository.save(albumInfoIndex);
+    //
+    //
+    //
+    //    // 像 suggestInfo 索引库中保存数据
+    //
+    //    SuggestIndex suggestIndex = new SuggestIndex();
+    //    suggestIndex.setId(albumInfoIndex.getId().toString());
+    //    suggestIndex.setTitle(albumInfoIndex.getAlbumTitle());
+    //
+    //    // 专辑标题：我喜欢纯音乐
+    //    suggestIndex.setKeyword(new Completion(new String[]{albumInfoIndex.getAlbumTitle()}));  // 我喜欢纯音乐
+    //    suggestIndex.setKeywordPinyin(new Completion(new String[]{PinYinUtils.toHanyuPinyin(albumInfoIndex.getAlbumTitle())}));  //  woxihuhancunyinyue
+    //    suggestIndex.setKeywordSequence(new Completion(new String[]{PinYinUtils.getFirstLetter(albumInfoIndex.getAlbumTitle())})); // wxhcyy
+    //    suggestIndexRepository.save(suggestIndex);
+    //
+    //
+    //}
 
     @Override
     public void albumOffSale(Long albumId) {

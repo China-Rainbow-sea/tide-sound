@@ -5,33 +5,50 @@ import cn.binarywang.wx.miniapp.api.WxMaUserService;
 import cn.binarywang.wx.miniapp.bean.WxMaJscode2SessionResult;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.rainbowsea.tidesound.album.client.AlbumInfoFeignClient;
 import com.rainbowsea.tidesound.common.constant.PublicConstant;
 import com.rainbowsea.tidesound.common.constant.RedisConstant;
+import com.rainbowsea.tidesound.common.constant.SystemConstant;
 import com.rainbowsea.tidesound.common.execption.GuiguException;
 import com.rainbowsea.tidesound.common.rabbit.constant.MqConst;
 import com.rainbowsea.tidesound.common.rabbit.service.RabbitService;
+import com.rainbowsea.tidesound.common.result.Result;
 import com.rainbowsea.tidesound.common.util.AuthContextHolder;
+import com.rainbowsea.tidesound.common.util.MongoUtil;
+import com.rainbowsea.tidesound.model.user.UserCollect;
 import com.rainbowsea.tidesound.model.user.UserInfo;
 import com.rainbowsea.tidesound.model.user.UserPaidAlbum;
 import com.rainbowsea.tidesound.model.user.UserPaidTrack;
+import com.rainbowsea.tidesound.model.user.UserSubscribe;
 import com.rainbowsea.tidesound.user.mapper.UserInfoMapper;
 import com.rainbowsea.tidesound.user.mapper.UserPaidAlbumMapper;
 import com.rainbowsea.tidesound.user.mapper.UserPaidTrackMapper;
 import com.rainbowsea.tidesound.user.service.UserInfoService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.rainbowsea.tidesound.vo.album.TrackListVo;
+import com.rainbowsea.tidesound.vo.album.TrackStatMqVo;
+import com.rainbowsea.tidesound.vo.user.UserCollectVo;
 import com.rainbowsea.tidesound.vo.user.UserInfoVo;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.error.WxErrorException;
 import org.apache.commons.lang3.StringUtils;
+import org.bson.types.ObjectId;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.jwt.Jwt;
 import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.jwt.crypto.sign.RsaSigner;
 import org.springframework.security.jwt.crypto.sign.RsaVerifier;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -76,6 +93,23 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
     @Autowired
     private UserPaidAlbumMapper userPaidAlbumMapper;
 
+    @Autowired
+    private MongoTemplate mongoTemplate;
+
+
+    @Autowired
+    private AlbumInfoFeignClient albumInfoFeignClient;
+
+    @Override
+    public TrackStatMqVo prepareTrackStatMqDto(Long albumId, Long trackId, String trackStatType, int count) {
+        TrackStatMqVo trackStatMqVo = new TrackStatMqVo();
+        trackStatMqVo.setBusinessNo(UUID.randomUUID().toString().replace("-", "")); // 消息去重
+        trackStatMqVo.setAlbumId(albumId);
+        trackStatMqVo.setTrackId(trackId);
+        trackStatMqVo.setStatType(trackStatType);
+        trackStatMqVo.setCount(count);
+        return trackStatMqVo;
+    }
 
     /**
      * 返回微信登录成功后的 Map ,Map 当中存放了JWT认证的 token 信息
@@ -285,6 +319,123 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
         wrapper.eq(UserPaidAlbum::getAlbumId, albumId);
         UserPaidAlbum userPaidAlbum = userPaidAlbumMapper.selectOne(wrapper);
         return userPaidAlbum != null;
+    }
+
+    @Override
+    public Boolean collect(Long trackId) {
+
+        Long userId = AuthContextHolder.getUserId();
+
+        // 1.构建条件对象
+        Criteria criteria = Criteria.where("userId").is(userId).and("trackId").is(trackId);
+
+        // 2.构建查询对象
+        Query query = new Query(criteria);
+
+        // 3.开始查询
+        String collectionName = MongoUtil.getCollectionName(MongoUtil.MongoCollectionEnum.USER_COLLECT, userId);
+        UserCollect userCollect = mongoTemplate.findOne(query, UserCollect.class, collectionName);
+        if (userCollect == null) {
+            // 收藏声音
+            // 插入收藏对象到MongoDB
+            userCollect = new UserCollect();
+            userCollect.setId(ObjectId.get().toString());
+            userCollect.setUserId(userId);
+            userCollect.setTrackId(trackId);
+            userCollect.setCreateTime(new Date());
+            mongoTemplate.save(userCollect, collectionName);
+            TrackStatMqVo trackStatMqVo = prepareTrackStatMqDto(null, userCollect.getTrackId(), SystemConstant.TRACK_STAT_COLLECT, 1);
+            rabbitService.sendMessage(MqConst.EXCHANGE_TRACK, MqConst.ROUTING_TRACK_STAT_UPDATE, JSONObject.toJSONString(trackStatMqVo));
+
+            return true;  // 收藏过
+        } else {
+            // 取消收藏
+            mongoTemplate.remove(query, UserCollect.class, collectionName);
+            TrackStatMqVo trackStatMqVo = prepareTrackStatMqDto(null, userCollect.getTrackId(), SystemConstant.TRACK_STAT_COLLECT, -1);
+            rabbitService.sendMessage(MqConst.EXCHANGE_TRACK, MqConst.ROUTING_TRACK_STAT_UPDATE, JSONObject.toJSONString(trackStatMqVo));
+            return false;
+
+        }
+    }
+
+    @Override
+    public Boolean isCollect(Long trackId) {
+
+        Long userId = AuthContextHolder.getUserId();
+
+        // 1.构建条件对象
+        Criteria criteria = Criteria.where("userId").is(userId).and("trackId").is(trackId);
+
+        // 2.构建查询对象
+        Query query = new Query(criteria);
+
+        long count = mongoTemplate.count(query, UserCollect.class, MongoUtil.getCollectionName(MongoUtil.MongoCollectionEnum.USER_COLLECT, userId));
+        return count > 0;
+    }
+
+    @Override
+    public Boolean isSubscribe(Long albumId) {
+
+
+        Long userId = AuthContextHolder.getUserId();
+
+        // 1.构建条件对象
+        Criteria criteria = Criteria.where("userId").is(userId).and("albumId").is(albumId);
+
+        // 2.构建查询对象
+        Query query = new Query(criteria);
+
+        long count = mongoTemplate.count(query, UserSubscribe.class, MongoUtil.getCollectionName(MongoUtil.MongoCollectionEnum.USER_SUBSCRIBE, userId));
+        return count > 0;
+    }
+
+    @Override
+    public IPage<UserCollectVo> findUserCollectPage(IPage<UserCollectVo> pageParam) {
+
+        Long userId = AuthContextHolder.getUserId();
+        // 1.构建条件对象
+        Criteria criteria = Criteria.where("userId").is(userId);
+
+        // 2.构建查询对象
+        Query query = new Query(criteria);
+
+        // 3.构建分页和排序条件对象【mp中分页查询对MySQL查询有效】
+
+        Sort sort = Sort.by(Sort.Order.desc("updateTime"));
+        // from:(pn-1)*size   size
+        PageRequest pageAndSort = PageRequest.of((int) ((pageParam.getCurrent() - 1) * pageParam.getSize()), (int) pageParam.getSize(), sort);
+        query.with(pageAndSort);
+
+        // 4.查询总记录数
+        long count = mongoTemplate.count(query.limit(-1), UserCollect.class, MongoUtil.getCollectionName(MongoUtil.MongoCollectionEnum.USER_COLLECT, userId));
+
+
+        // 5.查询数据
+        List<UserCollect> userCollectList = mongoTemplate.find(query, UserCollect.class, MongoUtil.getCollectionName(MongoUtil.MongoCollectionEnum.USER_COLLECT, userId));
+
+        List<Long> trackIdList = userCollectList.stream().map(UserCollect::getTrackId).collect(Collectors.toList());
+        // 6.根据声音id集合 查询【声音对象】集合
+        Result<List<TrackListVo>> trackListVoResult = albumInfoFeignClient.getTrackListByIds(trackIdList);
+        List<TrackListVo> trackListVos = trackListVoResult.getData();
+        if (CollectionUtils.isEmpty(trackListVos)) {
+            throw new GuiguException(201, "远程查询专辑微服务获取声音集合失败");
+        }
+
+        //  7.将声音对象的列表集合转成声音对象的Map集合
+        Map<Long, TrackListVo> trackListVoMap = trackListVos.stream().collect(Collectors.toMap(TrackListVo::getTrackId, v -> v));
+
+
+        List<UserCollectVo> userCollectVoList = userCollectList.stream().map(userCollect -> {
+            UserCollectVo userCollectVo = new UserCollectVo();
+            TrackListVo trackListVo = trackListVoMap.get(userCollect.getTrackId());
+            userCollectVo.setAlbumId(trackListVo.getAlbumId());// 收藏声音对应的专辑id
+            userCollectVo.setTrackId(userCollect.getTrackId());
+            userCollectVo.setCreateTime(userCollect.getCreateTime());
+            userCollectVo.setTrackTitle(trackListVo.getTrackTitle());  // 收藏声音标题
+            userCollectVo.setCoverUrl(trackListVo.getCoverUrl());  // 收藏声音的封面
+            return userCollectVo;
+        }).collect(Collectors.toList());
+        return pageParam.setRecords(userCollectVoList).setTotal(count);
     }
 
 }

@@ -3,6 +3,7 @@ package com.rainbowsea.tidesound.album.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.rainbowsea.tidesound.album.mapper.AlbumAttributeValueMapper;
 import com.rainbowsea.tidesound.album.mapper.AlbumInfoMapper;
 import com.rainbowsea.tidesound.album.mapper.TrackInfoMapper;
 import com.rainbowsea.tidesound.album.mapper.TrackStatMapper;
@@ -12,6 +13,7 @@ import com.rainbowsea.tidesound.common.constant.SystemConstant;
 import com.rainbowsea.tidesound.common.execption.GuiguException;
 import com.rainbowsea.tidesound.common.result.Result;
 import com.rainbowsea.tidesound.common.util.AuthContextHolder;
+import com.rainbowsea.tidesound.model.album.AlbumAttributeValue;
 import com.rainbowsea.tidesound.model.album.AlbumInfo;
 import com.rainbowsea.tidesound.model.album.TrackInfo;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -22,6 +24,7 @@ import com.rainbowsea.tidesound.vo.album.AlbumTrackListVo;
 import com.rainbowsea.tidesound.vo.album.TrackInfoVo;
 import com.rainbowsea.tidesound.vo.album.TrackListVo;
 import com.rainbowsea.tidesound.vo.album.TrackMediaInfoVo;
+import com.rainbowsea.tidesound.vo.album.TrackStatVo;
 import com.rainbowsea.tidesound.vo.user.UserInfoVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.framework.AopContext;
@@ -56,6 +59,10 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 
     @Autowired
     private TrackStatMapper trackStatMapper;
+
+
+    @Autowired
+    private AlbumAttributeValueMapper albumAttributeValueMapper;
 
 
     @Autowired
@@ -259,6 +266,44 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 
     }
 
+
+    @Override
+    public TrackStatVo getTrackStatVo(Long trackId) {
+
+        return trackStatMapper.getTrackStatVo(trackId);
+    }
+
+    @Override
+    public AlbumInfo getAlbumInfo(Long albumId) {
+
+
+        // 1.根据专辑id查询专辑基本信息
+        AlbumInfo albumInfo = albumInfoMapper.selectById(albumId);
+        if (albumInfo == null) {
+            throw new GuiguException(201, "该专辑不存在");
+        }
+
+
+        // 2.查询专辑的标签信息（属性id和属性值id）
+        List<AlbumAttributeValue> attributeValues = albumAttributeValueMapper.selectList(new LambdaQueryWrapper<AlbumAttributeValue>().eq(AlbumAttributeValue::getAlbumId, albumId));
+
+        albumInfo.setAlbumAttributeValueVoList(attributeValues);
+
+        return albumInfo;
+    }
+
+    @Override
+    public List<TrackListVo> getTrackListByIds(List<Long> trackIdList) {
+
+        List<TrackInfo> trackInfos = trackInfoMapper.selectBatchIds(trackIdList);
+
+        return trackInfos.stream().map(trackInfo -> {
+            TrackListVo trackListVo = new TrackListVo();
+            BeanUtils.copyProperties(trackInfo, trackListVo);
+            trackListVo.setTrackId(trackInfo.getId());
+            return trackListVo;
+        }).collect(Collectors.toList());
+    }
 
     /**
      * 处理付费，是否显示付费图标

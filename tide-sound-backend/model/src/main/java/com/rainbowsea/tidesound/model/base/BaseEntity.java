@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 
@@ -19,6 +20,7 @@ public class BaseEntity implements Serializable {
     private Long id;
 
     @TableField("create_time")
+    //@JsonFormat(timezone = "GMT+8",pattern = "yyyy-MM-dd HH:mm:ss") // UTC+8无效；Jsonxx系列的注解都是只会在序列化或者反序列化中起作用
     private Date createTime;
 
     @JsonIgnore

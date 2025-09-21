@@ -1,14 +1,17 @@
 package com.rainbowsea.tidesound.album.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.rainbowsea.tidesound.model.album.AlbumInfo;
 import com.rainbowsea.tidesound.model.album.TrackInfo;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.rainbowsea.tidesound.query.album.TrackInfoQuery;
 import com.rainbowsea.tidesound.vo.album.AlbumTrackListVo;
 import com.rainbowsea.tidesound.vo.album.TrackInfoVo;
 import com.rainbowsea.tidesound.vo.album.TrackListVo;
+import com.rainbowsea.tidesound.vo.album.TrackStatVo;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Map;
 
 public interface TrackInfoService extends IService<TrackInfo> {
@@ -57,4 +60,28 @@ public interface TrackInfoService extends IService<TrackInfo> {
      * @return
      */
     IPage<AlbumTrackListVo> findAlbumTrackPage(IPage<AlbumTrackListVo> albumTrackListVoPage, Long albumId);
+
+    /**
+     * 根据声音id查询声音的统计信息
+     *
+     * @param trackId
+     * @return
+     */
+    TrackStatVo getTrackStatVo(Long trackId);
+
+    /**
+     * 根据专辑id查询专辑信息
+     *
+     * @param albumId
+     * @return
+     */
+    AlbumInfo getAlbumInfo(Long albumId);
+
+    /**
+     * 根据声音id集合查询声音对象集合
+     *
+     * @param trackIdList
+     * @return
+     */
+    List<TrackListVo> getTrackListByIds(List<Long> trackIdList);
 }

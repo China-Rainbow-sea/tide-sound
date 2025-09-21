@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="com.rainbowsea.tidesound.album.mapper.AlbumStatMapper">
+
+    <update id="updateAlbumNumByType">
+        update album_stat
+        set stat_num= stat_num + #{num}
+        where album_id = #{albumId}
+          and stat_type = #{type}
+
+    </update>
+</mapper>
+

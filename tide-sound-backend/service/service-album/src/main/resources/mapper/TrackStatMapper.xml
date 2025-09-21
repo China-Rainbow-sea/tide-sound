@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="com.rainbowsea.tidesound.album.mapper.TrackStatMapper">
+    <update id="updateTrackNumByType">
+        update  track_stat set  stat_num= stat_num+#{num}
+        where   track_id=#{trackId} and stat_type=#{type}
+    </update>
+
+    <select id="getTrackStatVo" resultType="com.rainbowsea.tidesound.vo.album.TrackStatVo">
+
+        SELECT
+            MAX(IF(track_stat.stat_type='0701',track_stat.stat_num,0)) as playStatNum,
+            MAX(IF(track_stat.stat_type='0702',track_stat.stat_num,0)) as collectStatNum,
+            MAX(IF(track_stat.stat_type='0703',track_stat.stat_num,0)) as praiseStatNum,
+            MAX(IF(track_stat.stat_type='0704',track_stat.stat_num,0)) as commentStatNum
+        FROM track_stat
+        WHERE track_id=#{trackId}
+        GROUP BY track_stat.track_id
+    </select>
+</mapper>
+
