@@ -77,5 +77,11 @@ public class AlbumInfoDegradeFeignClient implements AlbumInfoFeignClient {
         return Result.fail();
     }
 
+    @Override
+    public Result<List<Long>> getAlbumInfoIdList() {
+        // TODO 降级逻辑
+        return Result.fail();
+    }
+
 
 }

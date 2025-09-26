@@ -29,6 +29,12 @@ public interface ItemService {
     void batchAlbumOffSale();
 
     /**
+     * 手动重建布隆
+     * @return
+     */
+    Boolean rebuildBloomFilter();
+
+    /**
      * 根据专辑id查询专辑详情
      *
      * @param albumId
@@ -49,4 +55,10 @@ public interface ItemService {
      * @return
      */
     List<AlbumInfoIndexVo> findRankingList(Long c1Id, String dimension);
+
+
+    /**
+     * 查询所有的专辑id集合
+     */
+    List<Long> getAlbumInfoIdList();
 }

@@ -259,6 +259,17 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 
         return albumInfoMapper.getAlbumStat(albumId);
     }
+
+    @Override
+    public List<Long> getAlbumInfoIdList() {
+
+        List<AlbumInfo> albumInfos = albumInfoMapper.selectList(null);
+        List<Long> albumIds = albumInfos.stream().map(AlbumInfo::getId).collect(Collectors.toList());
+
+        return albumIds;
+    }
+
+
     /**
      *  保存专辑的统计（album_stat） 操作  album_stat 数据表
      * @param albumId

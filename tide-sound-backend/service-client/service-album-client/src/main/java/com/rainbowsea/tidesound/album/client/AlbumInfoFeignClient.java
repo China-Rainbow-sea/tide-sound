@@ -82,4 +82,11 @@ public interface AlbumInfoFeignClient {
     Result<List<TrackListVo>> getTrackListByIds(@RequestBody List<Long> trackIdList);
 
 
+    /**
+     * 查询所有的专辑 id 集合(这里用于封装到布隆过滤器当中去)
+     * @return
+     */
+    @GetMapping("/getAlbumInfoIdList")
+    Result<List<Long>> getAlbumInfoIdList();
+
 }

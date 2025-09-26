@@ -6,6 +6,9 @@ import co.elastic.clients.elasticsearch.core.search.Hit;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.nacos.shaded.javax.annotation.Nullable;
 import com.google.common.collect.Lists;
+import com.google.common.hash.BloomFilter;
+import com.google.common.hash.Funnel;
+import com.google.common.hash.Funnels;
 import com.rainbowsea.tidesound.album.client.AlbumInfoFeignClient;
 import com.rainbowsea.tidesound.common.constant.RedisConstant;
 import com.rainbowsea.tidesound.common.execption.GuiguException;
@@ -17,16 +20,22 @@ import com.rainbowsea.tidesound.model.search.AlbumInfoIndex;
 import com.rainbowsea.tidesound.model.search.AttributeValueIndex;
 import com.rainbowsea.tidesound.model.search.SuggestIndex;
 import com.rainbowsea.tidesound.search.executor.ExpireThreadExecutor;
+import com.rainbowsea.tidesound.search.factory.ScheduleTaskThreadPoolFactory;
 import com.rainbowsea.tidesound.search.repository.AlbumInfoIndexRepository;
 import com.rainbowsea.tidesound.search.repository.SuggestIndexRepository;
+import com.rainbowsea.tidesound.search.runnable.RebuildBloomFilterRunnable;
 import com.rainbowsea.tidesound.search.service.ItemService;
 import com.rainbowsea.tidesound.user.client.UserInfoFeignClient;
 import com.rainbowsea.tidesound.vo.album.AlbumStatVo;
 import com.rainbowsea.tidesound.vo.search.AlbumInfoIndexVo;
 import com.rainbowsea.tidesound.vo.user.UserInfoVo;
+import jakarta.annotation.PostConstruct;
 import jakarta.validation.constraints.NotNull;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RBloomFilter;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.elasticsearch.core.suggest.Completion;
@@ -37,6 +46,8 @@ import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -47,11 +58,11 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -88,6 +99,23 @@ public class ItemServiceImpl implements ItemService {
 
     @Autowired
     private ElasticsearchClient elasticsearchClient;
+
+    // 布隆过滤器
+    BloomFilter<Long> longBloomFilter = null;
+
+
+    // Redission 操作 Redis
+    @Autowired
+    private RedissonClient redissonClient;
+
+
+    // redis 分布式布隆过滤器
+    @Autowired
+    private RBloomFilter rBloomFilter;
+
+    // 自己注入自己，打开Spring Boot 的解决循环依赖 spring.main.allow-circular-references: true
+    @Autowired
+    private ItemServiceImpl itemServiceImpl;
 
 
     // 标记同一线程，只能释放自己的该线程创建的锁，防止误删锁
@@ -385,6 +413,99 @@ public class ItemServiceImpl implements ItemService {
 
     // region  ---------------- 获取专辑优化: start
 
+    @PostConstruct   // spring在创建ItemServiceImpl Bean对象的时候，在生命周期走到初始化前这个阶段就会来回调该方法
+    public void initRebuildBloomFilter() {
+
+
+        // 1.创建定时（延时）任务线程池对象
+        ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(2);
+
+
+        // 2. 执行定时任务
+        // 测试使用
+        //ScheduleTaskThreadPoolFactory instance = ScheduleTaskThreadPoolFactory.getINSTANCE();
+        //instance.execute(new RebuildBloomFilterRunnable(redissonClient, redisTemplate, itemServiceImpl), 20L,
+        //        TimeUnit.SECONDS);  // 每20秒执行一次
+
+
+
+        // 从当前开始算7天之后的凌晨两点执行第一次。--线上使用的
+        ScheduleTaskThreadPoolFactory instance = ScheduleTaskThreadPoolFactory.getINSTANCE();
+        Long taskFirstTime = instance.diffTime(System.currentTimeMillis());
+        instance.execute(new RebuildBloomFilterRunnable(redissonClient, redisTemplate, itemServiceImpl), taskFirstTime, TimeUnit.MILLISECONDS);
+
+
+    }
+
+    @Override
+    public Boolean rebuildBloomFilter() {
+        // 做法：
+        // 1.删除老布隆的数据
+        // 2.删除老布隆的配置
+        // 3.创建新布隆
+        // 4.初始化新布隆
+        // 5.将数据放到新布隆
+        // 6.新布隆上线就可以使用
+
+        // 优化做法：(高速路上换轮胎)
+        // 1.创建新布隆
+        // 2.初始化新布隆
+        // 3.将数据放到新布隆
+
+        // 4.删除老布隆的数据
+        // 5.删除老布隆的配置
+        // 6.重命名；老布隆的名字换新布隆的名字---4 5 6做成一个原子操作
+
+        //  新布隆上线就可以使用  rename:重新命令  albumInfoBloomFilterNew   albumInfoBloomFilter
+
+
+        // 1. 创建新布隆过滤器
+        RBloomFilter<Object> albumIdBloomFilterNew = redissonClient.getBloomFilter("albumIdBloomFilterNew");
+
+        // 2.初始化新布隆
+        albumIdBloomFilterNew.tryInit(1000000l, 0.001);
+
+        // 3.将数据放到新布隆
+        List<Long> albumInfoIdList = getAlbumInfoIdList();   // 重数据中行查询
+        for (Long albumId : albumInfoIdList) {
+            albumIdBloomFilterNew.add(albumId);
+        }
+        albumIdBloomFilterNew.add(2000L);// 测试的时候手动添加的。
+
+        // rename key  key1  用key1的名字换key的名字（反向操作）
+        // 4.删除老布隆的数据
+        // 5.删除老布隆的配置
+        // 6.重命名；老布隆的名字换新布隆的名字---4 5 6做成一个原子操作
+        String script = " redis.call(\"del\",KEYS[1])" +
+                "  redis.call(\"del\",KEYS[2])" +
+                "  redis.call(\"rename\",KEYS[3],KEYS[1])" +
+                "  redis.call(\"rename\",KEYS[4],KEYS[2]) return 0";
+        List<String> asList = Arrays.asList("albumIdBloomFilter", "{albumIdBloomFilter}:config", "albumIdBloomFilterNew", "{albumIdBloomFilterNew}:config");
+        Long execute = redisTemplate.execute(new DefaultRedisScript<Long>(script, Long.class), asList);
+        if (execute == 0) {
+            log.info("老布隆已经被删除，新布隆上线...");
+        }
+        return execute == 0;
+    }
+
+
+    // 专辑优化：本地布隆过滤器
+    //@PostConstruct // 该注解 Spring在创建itemServiceImp Bean 对象,在生命周期走到初始化前这个阶段就会来回调该方法
+    public void initLocalBloomFilter() {
+        // 1.创建化布隆过滤器
+        Funnel<Long> longFunnel = Funnels.longFunnel();
+        longBloomFilter = BloomFilter.create(longFunnel, 1000000, 0.01);
+
+        // 2.将元素放到布隆过滤器器中
+        List<Long> albumInfoIdList = getAlbumInfoIdList();
+
+        albumInfoIdList.stream().forEach(albumId -> {
+            longBloomFilter.put(albumId);
+        });
+        log.info("本地布隆初始化完毕，且布隆中的元素个数：{}", longBloomFilter.approximateElementCount());
+    }
+
+
     /**
      * 1、异步优化
      *
@@ -394,8 +515,11 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public Map<String, Object> getAlbumInfo(Long albumId) {
 
+        // v5: 集成Redisson分布式布隆过滤器 以及Redisson分布式锁- 解决缓存穿透问题
+        return getDistroCacheAndLockFinallyRedissonVersion(albumId);
+
         // v4:V4 Redis分布式锁+自旋可重入+双缓存查询的缓存使用 + 分布式锁续期
-        return getDistroCacheAndLockFinallyVersion(albumId);
+        //return getDistroCacheAndLockFinallyVersion(albumId);
 
         //v3:解决锁的误删问题
         //return getDistroCacheAndLockV3(albumId);
@@ -408,6 +532,206 @@ public class ItemServiceImpl implements ItemService {
     }
 
 
+
+    /**
+     * 集成Redisson分布式布隆过滤器 以及Redisson分布式锁
+     * <p>
+     * 企业版本
+     *
+     * @param albumId
+     * @return
+     */
+
+    @SneakyThrows
+    private Map getDistroCacheAndLockFinallyRedissonVersion(Long albumId) {
+
+        // 1.定义缓存key
+        String cacheKey = RedisConstant.CACHE_INFO_PREFIX + albumId;
+        String lockKey = RedisConstant.ALBUM_LOCK_SUFFIX + albumId;
+        long ttl = 0l;
+
+        // 2.查询分布式布隆过滤器
+        boolean contains = rBloomFilter.contains(albumId);
+        if (!contains) {
+            return null;
+        }
+        // 3.查询缓存
+        String jsonStrFromRedis = redisTemplate.opsForValue().get(cacheKey);
+
+        // 3.1 缓存命中
+        if (!StringUtils.isEmpty(jsonStrFromRedis)) {
+            return JSONObject.parseObject(jsonStrFromRedis, Map.class);
+        }
+        // 3.2 缓存未命中 查询数据库
+        // 3.2.1 添加分布式锁
+        RLock lock = redissonClient.getLock(lockKey);
+        boolean accquireLockFlag = lock.tryLock();// 非阻塞 还能续期
+        if (accquireLockFlag) {
+            try {
+                // 3.2.2 回源查询数据
+                Map<String, Object> albumInfoFromDb = getAlbumInfoFromDb(albumId);
+                if (albumInfoFromDb != null) {
+                    ttl = 60 * 60 * 24 * 7l;
+                } else {
+                    ttl = 60 * 60 * 24l;
+                }
+                // 3.2.3 同步数据到缓存中去
+                redisTemplate.opsForValue().set(cacheKey, JSONObject.toJSONString(albumInfoFromDb), ttl, TimeUnit.SECONDS);// 防止缓存穿透的固定值攻击
+                return albumInfoFromDb;
+            } finally {
+                lock.unlock();// 释放锁
+            }
+
+        } else {
+            // 等同步时间之后 查询缓存即可。
+            Thread.sleep(200);
+            String result = redisTemplate.opsForValue().get(cacheKey);
+            if (!StringUtils.isEmpty(result)) {
+                return JSONObject.parseObject(result, Map.class);
+            }
+            return getAlbumInfoFromDb(albumId);
+        }
+
+    }
+
+
+    /**
+     * 面试的时候：把简单时期复杂化 开发期间复杂的时间简单
+     * 面试版本
+     * finally version:
+     * 缓存击穿（分布式锁） 缓存穿透（固定值攻击：缓存key-null 随机值攻击使用的是本地布隆过滤器）
+     * Redis分布式锁+自旋可重入+双缓存查询的缓存使用
+     *
+     * @param albumId
+     * @return // 续期：
+     * 要做的： 只要抢到锁的线程没有把自己的活干完，这个抢到锁的线程对应的这个锁key就不能释放掉。只有等抢到锁的线程把活干完了或者干活期间出异常，才让在这个锁过期。
+     * <p>
+     * // 活没干完----给锁key续期
+     * // 活干完或者干期间出异常---不用在给锁key续期
+     * 注意：只有抢到锁，才续期，没抢到就别续。
+     * <p>
+     * // 启动一个线程--->负责完成续期任务。
+     * <p>
+     * // 方案1：new Thread线程 让这个线程做续期任务（一直做） 并且让这个线程作为守护线程。 最后在利用Thread的中断机制，完成对续期线程的取消。
+     * // 方案2：用线程池完成续期。【定时或者延时任务的线程池实现】
+     * <p>
+     * // 续期：每隔多久 在让redis中的锁key的时间是一个新值。每隔10s钟给我将Redis中的锁key设置为30s.
+     */
+
+    private Map getDistroCacheAndLockFinallyRedisVersion(Long albumId) {
+
+        // 1.定义变量
+        String cacheKey = RedisConstant.CACHE_INFO_PREFIX + albumId;
+        String lockKey = RedisConstant.ALBUM_LOCK_SUFFIX + albumId;
+        String token = "";
+        Boolean acquireLockFlag = false;
+
+
+        // 1.1 查询布隆过滤器（本地）
+        //boolean b = longBloomFilter.mightContain(albumId); // 解决缓存穿透的随机值攻击
+        //if (!b) {
+        //    log.info("本地布隆过滤器不存在访问的数据:{}", albumId);
+        //    return null;
+        //}
+
+
+        //
+        // 1.2 查询布隆过滤器（分布式）
+        boolean bloomContains = rBloomFilter.contains(albumId);
+        if (!bloomContains) {
+            return null;
+        }
+
+        // 2.查询分布式缓存
+        String resultFromCache = redisTemplate.opsForValue().get(cacheKey);
+
+        // 3.判断缓存是否存在
+        if (!StringUtils.isEmpty(resultFromCache)) {
+            return JSONObject.parseObject(resultFromCache, Map.class);
+        }
+
+        // 4.缓存未命中 准备查询数据库
+        // 4.1 从ThreadLocal中获取令牌值（解决递归的线程进来）
+        String s = reentrantLockTokenThreadLocal.get();
+        // 4.2 如果是递归进来的线程
+        if (!StringUtils.isEmpty(s)) {
+            token = s;
+            acquireLockFlag = true;
+        } else {
+            // 4.3 第一次进来
+            token = UUID.randomUUID().toString().replace("-", "");
+            // 4.4 加分布式锁
+            acquireLockFlag = redisTemplate.opsForValue().setIfAbsent(lockKey, token, 30, TimeUnit.SECONDS);//  服务端给锁一个过期时间  避免死锁发生
+        }
+        // 5.加分布式锁成功
+        if (acquireLockFlag) {
+            // 开始续期
+            ExpireThreadExecutor expireThreadExecutor = new ExpireThreadExecutor(redisTemplate, albumId);
+            expireThreadExecutor.renewal(30l, TimeUnit.SECONDS);
+
+            Map<String, Object> albumInfoFromDb;
+            try {
+                long ttl = 0l;
+                // 5.1 回源查询数据库   // 100--->{}
+                albumInfoFromDb = getAlbumInfoFromDb(albumId);  // Map中有数据--->给该数据在redis中存储一个较长的时间   Map中没有数据--->给{}在redis中存储一个较短的时间
+                if (albumInfoFromDb != null && albumInfoFromDb.size() > 0) {
+                    ttl = 60 * 60 * 24 * 7l;  // 值存在，设置该专辑的 ID 信息过期时间为 7 day
+                } else {
+                    ttl = 60 * 60 * 2;  // 专辑信息不存在，防止固定值的缓存穿透，设置过期时间为 2 小时
+                }
+//                 5.2 将数据库查询的数据同步给缓存Redis
+                redisTemplate.opsForValue().set(cacheKey, JSONObject.toJSONString(albumInfoFromDb), ttl, TimeUnit.SECONDS);// 缓存穿透的固定值攻击解决
+            } finally {
+                // 5.3 释放锁
+                // 判断是不是自己加的锁 是自己加的锁 才删除 否则不能删除
+                String luaScript = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
+                Long execute = redisTemplate.execute(new DefaultRedisScript<Long>(luaScript, Long.class), Arrays.asList(lockKey), token);
+                if (execute == 0) {
+                    log.error("释放锁失败");
+                } else {
+                    log.info("释放锁成功");
+                }
+                // 5.4 从ThreadLocal移除令牌
+                reentrantLockTokenThreadLocal.remove();// 防止内存泄漏问题。用完一定要给他删除掉。
+
+                // 5.5 结束续期任务
+                expireThreadExecutor.cancelRenewal();
+            }
+            // 5.6 返回数据给前端
+            return albumInfoFromDb;
+        } else {
+            // 6.加分布式锁失败
+            // 6.1.等同步时间
+            try {
+                Thread.sleep(200);// 一定要压测得到准确值
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            // 6.2 查询缓存--正常99%的情况下200ms之后的缓存一定是有数据。所以直接返回出去即可
+            String firstCacheStr = redisTemplate.opsForValue().get(cacheKey);
+            if (!StringUtils.isEmpty(firstCacheStr)) {
+                return JSONObject.parseObject(firstCacheStr, Map.class);
+            }
+
+            // 6.3 解决1%极端情况（抢到锁的线程在将数据库中的数据同步到缓存的时候出现了问题，导致缓存没有）
+            while (true) {// 通过监控工具排查定位cpu飙升原因  // 兜底---自旋就是while[自旋+可重复入]
+                // 6.4查询缓存的作用：主要是为了解决，递归进去的线程将数据同步到缓存之后，其它线程还要抢锁。
+                String doubleCacheStr = redisTemplate.opsForValue().get(cacheKey);
+                // 6.5 如果有，要在while..true抢锁的线程不用在抢锁。直接将递归进去的线程放到缓存中的数据返回即可。
+                if (!StringUtils.isEmpty(doubleCacheStr)) {
+                    return JSONObject.parseObject(doubleCacheStr);
+                }
+                // 6.6 抢锁
+                Boolean acquireLock = redisTemplate.opsForValue().setIfAbsent(lockKey, token, 30, TimeUnit.SECONDS);
+                if (acquireLock) {
+                    reentrantLockTokenThreadLocal.set(token); //将该线程加锁的令牌存放到ThrealLocal.主要解决递归进去的线程不在加锁。【保证可重入锁】
+                    break; // 退出循环
+                }
+            }
+            // 7. 重新递归进去查询数据库
+            return getAlbumInfo(albumId);
+        }
+    }
 
     /**
      * finally version:
@@ -591,8 +915,6 @@ public class ItemServiceImpl implements ItemService {
     }
 
 
-
-
     /**
      * v2:解决在极端情况下，抢到锁的线程刚执行业务，断电。导致Redis中的锁key没有被释放，那么就会导致死锁发生
      * 解决办法：
@@ -657,7 +979,6 @@ public class ItemServiceImpl implements ItemService {
     }
 
 
-
     /**
      * 分布式缓存Redis+Redis版本的分布式锁 解决缓存击穿问题。
      * <p>
@@ -699,8 +1020,7 @@ public class ItemServiceImpl implements ItemService {
 
             // 3.5 返回数据给前端
             return albumInfoFromDb;
-        }
-        else {
+        } else {
             // 4.等同步时间
             try {
                 Thread.sleep(200);// 一定要压测得到准确值
@@ -794,6 +1114,7 @@ public class ItemServiceImpl implements ItemService {
 
     // endregion  ---------------- 获取专辑优化: end
 
+
     @SneakyThrows
     @Override
     public void preRankingToCache() {
@@ -855,6 +1176,19 @@ public class ItemServiceImpl implements ItemService {
         }).collect(Collectors.toList());
 
         return albumInfoIndexVoList;
+    }
+
+
+    @Override
+    public List<Long> getAlbumInfoIdList() {
+
+        Result<List<Long>> albumIds = albumInfoFeignClient.getAlbumInfoIdList();
+
+        List<Long> albumIdsData = albumIds.getData();
+        if (CollectionUtils.isEmpty(albumIdsData)) {
+            throw new GuiguException(201, "应用中布存在专辑id集合");
+        }
+        return albumIdsData;
     }
 
     /**

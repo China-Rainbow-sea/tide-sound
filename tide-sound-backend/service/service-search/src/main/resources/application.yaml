@@ -40,6 +40,7 @@ spring:
 
   main:
     allow-bean-definition-overriding: true   # 这种写法会有风险,解决注册中心,服务名重复冲突的问题,覆盖
+    allow-circular-references: true  # 开启Spring 的解决循环依赖问题
 
 
 

@@ -66,4 +66,10 @@ public interface AlbumInfoService extends IService<AlbumInfo> {
      * @return
      */
     AlbumStatVo getAlbumStat(Long albumId);
+
+    /**
+     * 查询整个应用下的所有专辑id (用于封装到布隆过滤器当中)
+     * @return
+     */
+    List<Long> getAlbumInfoIdList();
 }

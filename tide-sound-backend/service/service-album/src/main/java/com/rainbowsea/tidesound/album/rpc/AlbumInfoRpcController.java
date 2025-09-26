@@ -117,4 +117,16 @@ public class AlbumInfoRpcController {
         AlbumInfo albumInfo = albumInfoService.getAlbumInfo(albumId);
         return Result.ok(albumInfo);
     }
+
+
+    /**
+     * 查询所有的专辑 id 集合(这里用于封装到布隆过滤器当中去)
+     * @return
+     */
+    @GetMapping("/getAlbumInfoIdList")
+    Result<List<Long>> getAlbumInfoIdList() {
+
+        List<Long> albumIdList = albumInfoService.getAlbumInfoIdList();
+        return Result.ok(albumIdList);
+    }
 }
