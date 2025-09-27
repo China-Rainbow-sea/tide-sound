@@ -1,0 +1,21 @@
+server:
+  port: 10001
+spring:
+  name: service-cdc
+  # redis 配置
+  redis:
+    host: 192.168.76.15
+    port: 6379
+    password: root
+  application:
+# canal 配置
+canal:
+  destination: tingshuTopic # 你创建 canal 容器实例的  -e canal.destinations=tingshuTopic \ 保持一致
+  server: 192.168.76.15:11111 # canal 默认是 11111 端口
+
+
+
+
+
+
+
