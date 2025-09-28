@@ -1,5 +1,6 @@
 package com.rainbowsea.tidesound.search.api;
 
+import com.rainbowsea.tidesound.common.constant.RedisConstant;
 import com.rainbowsea.tidesound.common.result.Result;
 import com.rainbowsea.tidesound.query.search.AlbumIndexQuery;
 import com.rainbowsea.tidesound.search.service.ItemService;
@@ -8,6 +9,7 @@ import com.rainbowsea.tidesound.vo.search.AlbumInfoIndexVo;
 import com.rainbowsea.tidesound.vo.search.AlbumSearchResponseVo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.raibnowsea.cache.aspect.annotaion.Cacheable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -55,6 +57,11 @@ public class itemApiController {
 	// Request URL: http://192.168.200.1:8500/api/search/albumInfo/936
 	@GetMapping("/{albumId}")
 	@Operation(summary = "根据专辑id查询专辑详情")
+	@Cacheable(cacheKey = RedisConstant.CACHE_INFO_PREFIX + "#{#args[0]}",
+			lockKey = RedisConstant.ALBUM_LOCK_SUFFIX+"#{#args[0]}",
+			bloomKey = "#{#args[0]}",
+			enableBloomFilter = true,
+			enableLock = true)  // 缓存key 就是由程序员自己在用这个注解的时候来指定的。
 	public Result getAlbumInfo(@PathVariable(value = "albumId") Long albumId) {
 		Map<String, Object> result = itemService.getAlbumInfo(albumId);
 		return Result.ok(result);

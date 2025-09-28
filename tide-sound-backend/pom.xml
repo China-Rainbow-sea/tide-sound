@@ -22,6 +22,7 @@
         <module>server-gateway</module>
         <module>service-client</module>
         <module>service/es-demo</module>
+        <module>rainbowsea-myCache-starter</module>
     </modules>
 
     <properties>

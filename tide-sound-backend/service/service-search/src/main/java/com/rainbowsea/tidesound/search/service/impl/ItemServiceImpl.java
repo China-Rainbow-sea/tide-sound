@@ -515,8 +515,12 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public Map<String, Object> getAlbumInfo(Long albumId) {
 
+        // v6: 使用了自定义的@Cacheable 分布式缓存+分布式锁+布隆过滤器注解
+        return getAlbumInfoFromDb(albumId);
+
+
         // v5: 集成Redisson分布式布隆过滤器 以及Redisson分布式锁- 解决缓存穿透问题
-        return getDistroCacheAndLockFinallyRedissonVersion(albumId);
+        //return getDistroCacheAndLockFinallyRedissonVersion(albumId);
 
         // v4:V4 Redis分布式锁+自旋可重入+双缓存查询的缓存使用 + 分布式锁续期
         //return getDistroCacheAndLockFinallyVersion(albumId);
@@ -530,6 +534,7 @@ public class ItemServiceImpl implements ItemService {
         // v1:  分布式缓存Redis+Redis版本的分布式锁 解决缓存击穿问题。
         //return opsDistroCacheAndLockV1(albumId);
     }
+
 
 
 

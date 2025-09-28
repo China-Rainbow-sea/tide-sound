@@ -20,6 +20,14 @@
     </properties>
 
     <dependencies>
+
+<!--         自定义的分布式锁+AOP 实现缓存，布隆过滤器”为注解+AOP 切面编程 Cache注解 -->
+        <dependency>
+            <groupId>org.raibnowsea.cache</groupId>
+            <artifactId>rainbowsea-myCache-starter</artifactId>
+            <version>1.0</version>
+        </dependency>
+
         <dependency>
             <groupId>com.rainbowsea</groupId>
             <artifactId>rabbit-util</artifactId>

@@ -1,12 +1,12 @@
-package com.rainbowsea.tidesound.cdc;
+package org.raibnowsea.cache;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+
 @SpringBootApplication
-//@Import(RabbitService.class)
-public class CdcMainApplication {
+public class CacheStarterApplication {
     public static void main(String[] args) {
-        SpringApplication.run(CdcMainApplication.class, args);
+        SpringApplication.run(CacheStarterApplication.class, args);
     }
 }

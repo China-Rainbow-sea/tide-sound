@@ -141,6 +141,13 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
     public AlbumInfo getAlbumInfo(Long albumId) {
 
 
+        // 方案一：先删除缓存 在更新数据库 在cdc中异步再次删除缓存+消息队列重试机制
+
+//        String cacheKey = RedisConstant.CACHE_INFO_PREFIX + albumId;
+//        redisTemplate.delete(cacheKey);
+
+
+
         // 1.根据专辑id查询专辑基本信息
         AlbumInfo albumInfo = albumInfoMapper.selectById(albumId);
         if (albumInfo == null) {
@@ -221,7 +228,7 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
             log.info("专辑微服务发送消息到专辑下架队列成功");
         }
 
-
+        // 方案二 先更新数据库  在cdc中删除缓存+消息队列重试机制 --选择的方案
     }
 
     @Transactional(rollbackFor = Exception.class)
