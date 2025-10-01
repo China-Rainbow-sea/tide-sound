@@ -11,6 +11,7 @@ import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -72,4 +73,9 @@ public class OrderInfoVo {
     private Long timestamp;
     @Schema(description = "签名", required = true)
     private String sign;
+
+
+
+    // 声音存在的列表
+    private List<Long> exitItemIdList = new ArrayList<>();
 }

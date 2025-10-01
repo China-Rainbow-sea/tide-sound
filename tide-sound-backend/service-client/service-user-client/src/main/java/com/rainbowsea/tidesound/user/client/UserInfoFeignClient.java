@@ -1,6 +1,7 @@
 package com.rainbowsea.tidesound.user.client;
 
 import com.rainbowsea.tidesound.common.result.Result;
+import com.rainbowsea.tidesound.model.user.VipServiceConfig;
 import com.rainbowsea.tidesound.user.client.impl.UserInfoDegradeFeignClient;
 import com.rainbowsea.tidesound.vo.user.UserInfoVo;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -50,4 +51,10 @@ public interface UserInfoFeignClient {
     @GetMapping("/getUserPaidAlbum/{userId}/{albumId}")
     Result<Boolean> getUserPaidAlbum(@PathVariable(value = "userId") Long userId,
                                      @PathVariable(value = "albumId") Long albumId);
+
+
+    @GetMapping("/getVipConfigById/{itemId}")
+    Result<VipServiceConfig> getVipConfigById(@PathVariable(value = "itemId") Long itemId);
+
+
 }

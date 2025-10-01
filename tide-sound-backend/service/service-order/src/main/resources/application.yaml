@@ -1,0 +1,46 @@
+server:
+  port: 8550
+
+spring:
+#  jackson:
+  #    time-zone: GMT+8
+  #    date-format: yyyy-MM-dd HH:mm:ss
+  # MySQL
+  datasource:
+    type: com.zaxxer.hikari.HikariDataSource   # 数据源连接池（最快）
+    driver-class-name: com.mysql.jdbc.Driver   # 指定数据库的驱动
+    url: jdbc:mysql://192.168.76.15:3306/tingshu_order
+    username: root
+    password: root
+  main:
+    allow-bean-definition-overriding: true   #这种写法会有风险
+    allow-circular-references: true
+
+  #Redis的配置
+  data:
+    redis:
+      host: 192.168.76.15
+      port: 6379
+      password: root
+      database: 0
+
+  # RabbitMQ
+  rabbitmq:
+    host: 192.168.76.15
+    port: 5672
+    username: guest
+    password: guest
+    publisher-confirm-type: CORRELATED  # 发布确认模式
+    publisher-returns: true  # 确保消息返回
+    listener:
+      simple:
+        acknowledge-mode: manual #默认情况下消息消费者是自动确认消息的，如果要手动确认消息则需要修改确认模式为manual
+        prefetch: 1 # 在prefetch=1的情况下，消费者在确认当前消息之前不会收到新的消息  在多个消费者下也不会将多个未确认的消息同时发送给同一个消费者。
+
+
+#打印SQL
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+

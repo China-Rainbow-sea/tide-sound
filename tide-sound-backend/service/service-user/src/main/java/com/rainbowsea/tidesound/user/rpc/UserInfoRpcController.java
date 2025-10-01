@@ -1,7 +1,9 @@
 package com.rainbowsea.tidesound.user.rpc;
 
 import com.rainbowsea.tidesound.common.result.Result;
+import com.rainbowsea.tidesound.model.user.VipServiceConfig;
 import com.rainbowsea.tidesound.user.service.UserInfoService;
+import com.rainbowsea.tidesound.user.service.VipServiceConfigService;
 import com.rainbowsea.tidesound.vo.user.UserInfoVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +24,9 @@ public class UserInfoRpcController {
 
     @Autowired
     private UserInfoService userInfoService;
+
+    @Autowired
+    private VipServiceConfigService vipServiceConfigService;
 
     /**
      * 获取用户信息
@@ -62,6 +67,22 @@ public class UserInfoRpcController {
 
         Boolean isPaidAlbum = userInfoService.getUserPaidAlbum(userId, albumId);
         return Result.ok(isPaidAlbum);
+    }
+
+
+    /**
+     * 根据用户 id ,查询
+     * @param itemId
+     * @return
+     */
+    @GetMapping("/getVipConfigById/{itemId}")
+    Result<VipServiceConfig> getVipConfigById(@PathVariable(value = "itemId") Long itemId) {
+
+        VipServiceConfig vipServiceConfig = vipServiceConfigService.getById(itemId);
+
+        return Result.ok(vipServiceConfig);
+
+
     }
 
 }

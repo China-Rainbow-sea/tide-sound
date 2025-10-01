@@ -5,6 +5,7 @@ import com.rainbowsea.tidesound.common.result.Result;
 import com.rainbowsea.tidesound.model.album.AlbumInfo;
 import com.rainbowsea.tidesound.model.album.BaseCategory3;
 import com.rainbowsea.tidesound.model.album.BaseCategoryView;
+import com.rainbowsea.tidesound.model.album.TrackInfo;
 import com.rainbowsea.tidesound.vo.album.AlbumStatVo;
 import com.rainbowsea.tidesound.vo.album.TrackListVo;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -23,12 +24,13 @@ import java.util.List;
  * @author qy
  */
 @FeignClient(value = "service-album", fallback = AlbumInfoDegradeFeignClient.class
-,contextId = "albumInfoFeignClient",path = "/rpc/inner/albuminfo")
+        , contextId = "albumInfoFeignClient", path = "/rpc/inner/albuminfo")
 public interface AlbumInfoFeignClient {
 
 
     /**
      * 获取通过专辑id 获取到专辑的状态信息
+     *
      * @param albumId
      * @return
      */
@@ -36,9 +38,9 @@ public interface AlbumInfoFeignClient {
     Result<AlbumStatVo> getAlbumStat(@PathVariable(value = "albumId") Long albumId);
 
 
-
     /**
      * 获取专辑类别
+     *
      * @param albumId
      * @return
      */
@@ -46,10 +48,10 @@ public interface AlbumInfoFeignClient {
     Result<BaseCategoryView> getAlbumCategory(@PathVariable(value = "albumId") Long albumId);
 
 
-
     /**
      * OpenFeign 去微服务注册到 Nacos中心的service-album微服务/rpc/inner/albuminfo/getAlbumInfoAndAttrValue/路径
      * 发送请求。的获取相册信息和属性值
+     *
      * @param albumId
      * @return
      */
@@ -59,6 +61,7 @@ public interface AlbumInfoFeignClient {
 
     /**
      * 根据专辑id获取基本该专辑 3级类别列表
+     *
      * @param c1Id
      * @return
      */
@@ -67,6 +70,7 @@ public interface AlbumInfoFeignClient {
 
     /**
      * 查询全平台的一级分类 id
+     *
      * @return
      */
     @GetMapping("/getAllCategory1Id")
@@ -75,6 +79,7 @@ public interface AlbumInfoFeignClient {
 
     /**
      * 按id获取专辑声音列表
+     *
      * @param trackIdList
      * @return
      */
@@ -84,9 +89,33 @@ public interface AlbumInfoFeignClient {
 
     /**
      * 查询所有的专辑 id 集合(这里用于封装到布隆过滤器当中去)
+     *
      * @return
      */
     @GetMapping("/getAlbumInfoIdList")
     Result<List<Long>> getAlbumInfoIdList();
 
+
+    /**
+     * 根据声音 id ，查询声音信息
+     *
+     * @param trackId
+     * @return
+     */
+    @GetMapping("/getTrackInfoByTrackId/{trackId}")
+    Result<TrackInfo> getTrackInfoByTrackId(@PathVariable(value = "trackId") Long trackId);
+
+
+    /**
+     * 按当前声音ID，获取专辑下的所有声音列表
+     *
+     * @param userId
+     * @param trackId
+     * @param trackCount
+     * @return
+     */
+    @GetMapping("/getTrackListByCurrentTrackId/{userId}/{trackId}/{trackCount}")
+    Result<List<TrackInfo>> getTrackListByCurrentTrackId(@PathVariable(value = "userId") Long userId,
+                                                         @PathVariable(value = "trackId") Long trackId,
+                                                         @PathVariable(value = "trackCount") Integer trackCount);
 }

@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Map;
 
 @Tag(name = "声音管理")
@@ -142,6 +143,19 @@ public class TrackInfoApiController {
 		trackInfoService.saveTrackInfo(trackInfoVo);
 
 		return Result.ok();
+	}
+
+
+	// Request URL: http://192.168.200.1:8500/api/album/trackInfo/findUserTrackPaidList/48241
+
+	@Operation(summary = "分集展示要买的声音列表")
+	@TingshuLogin
+	@GetMapping("/findUserTrackPaidList/{currentTrackId}")
+	public Result findUserTrackPaidList(@PathVariable(value = "currentTrackId") Long currentTrackId) {
+
+		List<Map<String, Object>> mapList = trackInfoService.findUserTrackPaidList(currentTrackId);
+		return Result.ok(mapList);
+
 	}
 
 }

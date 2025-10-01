@@ -70,15 +70,18 @@ public class WxLoginApiController {
 
     @GetMapping("/refreshToken/getNewAccessToken")
     @Operation(summary = "获取新的令牌(双 token 设计的情况下)")
-    @TingshuLogin
+    //@TingshuLogin
     public Result getNewAccessToken() {
         Map<String, Object> map = userInfoService.getNewAccessToken();
         Object flag = map.get("1");
         // 含有 1 的 value 值说明，用户从来就没有登录过，让其登录去
-        if(map != null && StringUtils.isEmpty(flag)) {
+        //if(map != null && StringUtils.isEmpty(flag)) {
+        if (map != null && flag.equals("v")) {
             return Result.build(null, ResultCodeEnum.LOGIN_AUTH);
         }
         return Result.ok(map);
     }
+
+
 
 }

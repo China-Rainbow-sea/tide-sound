@@ -7,6 +7,7 @@ import com.rainbowsea.tidesound.common.result.Result;
 import com.rainbowsea.tidesound.model.album.AlbumInfo;
 import com.rainbowsea.tidesound.model.album.BaseCategory3;
 import com.rainbowsea.tidesound.model.album.BaseCategoryView;
+import com.rainbowsea.tidesound.model.album.TrackInfo;
 import com.rainbowsea.tidesound.vo.album.AlbumStatVo;
 import com.rainbowsea.tidesound.vo.album.TrackListVo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -129,4 +130,36 @@ public class AlbumInfoRpcController {
         List<Long> albumIdList = albumInfoService.getAlbumInfoIdList();
         return Result.ok(albumIdList);
     }
+
+
+    /**
+     * 通过声音ID，获取声音(集)信息
+     * @param trackId
+     * @return
+     */
+    @GetMapping("/getTrackInfoByTrackId/{trackId}")
+    Result<TrackInfo> getTrackInfoByTrackId(@PathVariable(value = "trackId") Long trackId) {
+        TrackInfo trackInfo = trackInfoService.getById(trackId);
+        return Result.ok(trackInfo);
+
+    }
+
+
+    /**
+     * 按当前声音ID，获取专辑下的所有声音列表
+     * @param userId
+     * @param trackId
+     * @param trackCount
+     * @return
+     */
+    @GetMapping("/getTrackListByCurrentTrackId/{userId}/{trackId}/{trackCount}")
+    Result<List<TrackInfo>> getTrackListByCurrentTrackId(@PathVariable(value = "userId") Long userId,
+                                                         @PathVariable(value = "trackId") Long trackId,
+                                                         @PathVariable(value = "trackCount") Integer trackCount) {
+        List<TrackInfo> trackInfoList = trackInfoService.getTrackListByCurrentTrackId(userId, trackId, trackCount);
+
+
+        return Result.ok(trackInfoList);
+    }
+
 }

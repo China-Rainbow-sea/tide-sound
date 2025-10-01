@@ -38,6 +38,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -305,6 +306,128 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
         }).collect(Collectors.toList());
     }
 
+
+    @Override
+    public List<Map<String, Object>> findUserTrackPaidList(Long currentTrackId) {
+
+        ArrayList<Map<String, Object>> result = new ArrayList<>();
+
+        // think: 把当前点击声音之后的声音列表分集展示出来   可以选择如何购买（本集 后10  后20集...）
+
+        Long userId = AuthContextHolder.getUserId();
+
+        // 1.根据声音id 查询声音对象是否存在
+        TrackInfo trackInfo = trackInfoMapper.selectById(currentTrackId);
+        if (trackInfo == null) {
+            throw new GuiguException(201, "当前声音不存在");
+        }
+
+        // 2.根据专辑id 查询专辑是否存在
+        Long albumId = trackInfo.getAlbumId();
+        AlbumInfo albumInfo = albumInfoMapper.selectById(albumId);
+        if (albumInfo == null) {
+            throw new GuiguException(201, "该声音对应的专辑不存在");
+        }
+
+        // 3.获取专辑的价格
+        BigDecimal trackPrice = albumInfo.getPrice();  // 如果priceType是整专辑的话 专辑对象中的价格就是专辑的价格  如果priceType是单集的话   专辑对象中的价格就是声音的价格
+
+        // 4.获取当前声音的序列号
+        Integer orderNum = trackInfo.getOrderNum();
+
+
+        // 5.查询当前声音后的50集展示（部分）
+        LambdaQueryWrapper<TrackInfo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(TrackInfo::getAlbumId, albumId);
+        wrapper.gt(TrackInfo::getOrderNum, orderNum);
+        wrapper.last("limit  50");
+        wrapper.orderByAsc(TrackInfo::getOrderNum);
+
+        List<TrackInfo> trackInfos = trackInfoMapper.selectList(wrapper);
+
+
+        // 6.将当前用户买过指定专辑下声音查询出来
+        Result<Map<Long, String>> userPaidAlbumTrack = userInfoFeignClient.getUserPaidAlbumTrack(userId, albumId);
+        Map<Long, String> userPaidAlbumTrackData = userPaidAlbumTrack.getData();
+        if (userPaidAlbumTrackData == null) {
+            throw new GuiguException(201, "远程查询用户微服务获取用户购买过指定专辑下的声音失败");
+        }
+
+        // 7.将买过的声音过滤掉，留下没有买过的声音
+        List<TrackInfo> reallyShowTrackList = trackInfos.stream().filter(trackInfo1 -> StringUtils.isEmpty(userPaidAlbumTrackData.get(trackInfo1.getId()))).collect(Collectors.toList());
+
+
+        // 8.展示要买的声音列表
+
+        // 8.1 展示本集
+        Map<String, Object> currentMap = new HashMap<>();
+        currentMap.put("name", "本集");
+        currentMap.put("price", trackPrice);
+        currentMap.put("trackCount", 0);// 0 只是本集的标识 未来还会提交给后端用 前端不用展示。
+        result.add(currentMap);
+
+        // 8.2 展示后n（50）集。
+        // think: 23集->3块（map）3  20集->2块
+        int reallyShowTrackSize = reallyShowTrackList.size();
+        int block = reallyShowTrackSize % 10 == 0 ? reallyShowTrackSize / 10 : reallyShowTrackSize / 10 + 1;
+
+        for (int i = 1; i <= block; i++) {
+            int blockSize = i * 10;
+            if (blockSize >= reallyShowTrackSize) {
+                // 构建Map对象
+                Map<String, Object> lastMap = new HashMap<>();
+                lastMap.put("name", "后" + reallyShowTrackSize + "集");
+                lastMap.put("price", trackPrice.multiply(new BigDecimal(reallyShowTrackSize)));
+                lastMap.put("trackCount", reallyShowTrackSize);
+                result.add(lastMap);
+                break;
+            }
+            // 构建Map对象
+            Map<String, Object> otherMap = new HashMap<>();
+            otherMap.put("name", "后" + blockSize + "集");
+            otherMap.put("price", trackPrice.multiply(new BigDecimal(blockSize)));
+            otherMap.put("trackCount", blockSize);
+            result.add(otherMap);
+        }
+
+        return result;
+    }
+
+    @Override
+    public List<TrackInfo> getTrackListByCurrentTrackId(Long userId, Long trackId, Integer trackCount) {
+
+        List<TrackInfo> result = new ArrayList<>();
+
+        // 1.判断声音对象
+        TrackInfo trackInfo = trackInfoMapper.selectById(trackId);
+        if (trackInfo == null) {
+            throw new GuiguException(201, "该声音不存在");
+        }
+
+        // 2.查询该声音对应的专辑id
+        Long albumId = trackInfo.getAlbumId();
+        AlbumInfo albumInfo = albumInfoMapper.selectById(albumId);
+        if (albumInfo == null) {
+            throw new GuiguException(201, "该声音对应的专辑不存在");
+        }
+
+
+        // 3.判断当前买的声音是本集还是其它集
+        if (trackCount == 0) {
+            // 本集
+            result.add(trackInfo);
+        } else {
+            // 其它集
+            LambdaQueryWrapper<TrackInfo> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(TrackInfo::getAlbumId, albumId);
+            wrapper.gt(TrackInfo::getOrderNum, trackInfo.getOrderNum());
+            wrapper.last("limit " + trackCount);
+            wrapper.orderByAsc(TrackInfo::getOrderNum);
+            result = trackInfoMapper.selectList(wrapper);
+
+        }
+        return result;
+    }
     /**
      * 处理付费，是否显示付费图标
      *

@@ -6,6 +6,7 @@ import com.rainbowsea.tidesound.common.result.Result;
 import com.rainbowsea.tidesound.model.album.AlbumInfo;
 import com.rainbowsea.tidesound.model.album.BaseCategory3;
 import com.rainbowsea.tidesound.model.album.BaseCategoryView;
+import com.rainbowsea.tidesound.model.album.TrackInfo;
 import com.rainbowsea.tidesound.vo.album.AlbumStatVo;
 import com.rainbowsea.tidesound.vo.album.TrackListVo;
 import org.springframework.stereotype.Component;
@@ -79,6 +80,18 @@ public class AlbumInfoDegradeFeignClient implements AlbumInfoFeignClient {
 
     @Override
     public Result<List<Long>> getAlbumInfoIdList() {
+        // TODO 降级逻辑
+        return Result.fail();
+    }
+
+    @Override
+    public Result<TrackInfo> getTrackInfoByTrackId(Long trackId) {
+        // TODO 降级逻辑
+        return Result.fail();
+    }
+
+    @Override
+    public Result<List<TrackInfo>> getTrackListByCurrentTrackId(Long userId, Long trackId, Integer trackCount) {
         // TODO 降级逻辑
         return Result.fail();
     }

@@ -84,4 +84,23 @@ public interface TrackInfoService extends IService<TrackInfo> {
      * @return
      */
     List<TrackListVo> getTrackListByIds(List<Long> trackIdList);
+
+    /**
+     * 分集展示要买的声音列表
+     *
+     * @param currentTrackId
+     * @return
+     */
+    List<Map<String, Object>> findUserTrackPaidList(Long currentTrackId);
+
+    /**
+     * 查询当前声音后多少集声音列表
+     *
+     * @param userId
+     * @param trackId
+     * @param trackCount
+     * @return
+     */
+    List<TrackInfo> getTrackListByCurrentTrackId(Long userId, Long trackId, Integer trackCount);
+
 }

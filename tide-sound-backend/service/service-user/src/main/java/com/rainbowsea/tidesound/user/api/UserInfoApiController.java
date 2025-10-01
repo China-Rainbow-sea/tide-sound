@@ -84,8 +84,8 @@ public class UserInfoApiController {
     public Result findUserSubscribePage(@PathVariable(value = "pn") Long pn,
                                         @PathVariable(value = "pz") Long pz) {
 
-        return Result.build(null, ResultCodeEnum.LOGIN_AUTH);
-//        return Result.ok();
+        //return Result.build(null, ResultCodeEnum.LOGIN_AUTH);
+        return Result.ok();
     }
 
 }
