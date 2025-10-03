@@ -4,6 +4,7 @@ import com.rabbitmq.client.Channel;
 import com.rainbowsea.tidesound.account.service.MqOpsService;
 import com.rainbowsea.tidesound.common.execption.GuiguException;
 import com.rainbowsea.tidesound.common.rabbit.constant.MqConst;
+import com.rainbowsea.tidesound.common.rabbit.service.RabbitService;
 import com.rainbowsea.tidesound.common.util.MD5;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +21,7 @@ import org.springframework.util.StringUtils;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Description:
+ *  Account  RabbitMQ 监听重试机制
  */
 
 @Slf4j
@@ -31,6 +32,12 @@ public class AccountInfoListener {
     // 操作 Redis 默认是key-value 是 String 类型
     @Autowired
     private StringRedisTemplate redisTemplate;
+
+
+
+
+    @Autowired
+    private RabbitService rabbitService;
 
     // 操作 rabbitMQ
     @Autowired
@@ -92,6 +99,100 @@ public class AccountInfoListener {
             // 无论何种原因导致消息最终被丢弃，都应该尝试清理重试计数键
             // 如果key不存在，delete操作是安全的，不会抛异常
             redisTemplate.delete(msgRetryKey);
+            log.error("签收消息时网络出现了故障，异常原因：{}", e.getMessage());
+            channel.basicNack(deliveryTag, false, false);
+        }
+
+    }
+
+
+    /**
+     * 监听用户帐号解锁成功
+     * @param orderNo
+     * @param message
+     * @param channel
+     */
+    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = MqConst.QUEUE_ACCOUNT_UNLOCK, durable = "true"),
+            exchange = @Exchange(value = MqConst.EXCHANGE_ACCOUNT, durable = "true"),
+            key = MqConst.ROUTING_ACCOUNT_UNLOCK))
+    @SneakyThrows   // SneakyThrows可以绕开编译时候的异常 但是真正在运行期间出现异常依然会抛出来
+    public void listenUserAccountUnlock(String orderNo, Message message, Channel channel) {
+
+        // 1.判断消息是否存在
+        if (StringUtils.isEmpty(orderNo)) {
+            return;  // 不用消费
+        }
+
+        // 2.消费消息
+
+        long deliveryTag = message.getMessageProperties().getDeliveryTag();
+        try {
+            mqOpsService.listenUserAccountUnlock(orderNo);
+            // 3.像本地消息表队列发送一条消息
+            rabbitService.sendMessage(MqConst.EXCHANGE_LOCAL_MSG, MqConst.ROUTING_LOCAL_MSG, orderNo);
+            // 4.手动应答消息（将消息从队列中删除掉）
+            channel.basicAck(deliveryTag, false);
+        } catch (GuiguException e) {
+            String msgRetryKey = "msg:retry:" + orderNo;
+            Long count = redisTemplate.opsForValue().increment(msgRetryKey);
+            // 三次重试
+            if (count >= 3) {
+                log.error("消息已经到达了重试{}次，请人工排查错误原因：{}", count, e.getMessage());
+                // 不能重试
+                channel.basicNack(deliveryTag, false, false);
+                redisTemplate.delete(msgRetryKey);
+            } else {
+                log.info("消息重试{}次", count);
+                channel.basicNack(deliveryTag, false, true);
+            }
+        } catch (Exception e) {
+            log.error("签收消息时网络出现了故障，异常原因：{}", e.getMessage());
+            channel.basicNack(deliveryTag, false, false);
+        }
+
+    }
+
+
+    /**
+     * 听用户账号扣减成功了
+     * @param orderNo
+     * @param message
+     * @param channel
+     */
+    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = MqConst.QUEUE_ACCOUNT_MINUS, durable = "true"),
+            exchange = @Exchange(value = MqConst.EXCHANGE_ACCOUNT, durable = "true"),
+            key = MqConst.ROUTING_ACCOUNT_MINUS))
+    @SneakyThrows   // SneakyThrows可以绕开编译时候的异常 但是真正在运行期间出现异常依然会抛出来
+    public void listenUserAccountMinus(String orderNo, Message message, Channel channel) {
+
+
+        // 1.判断消息是否存在
+        if (StringUtils.isEmpty(orderNo)) {
+            return;  // 不用消费
+        }
+
+        // 2.消费消息
+        long deliveryTag = message.getMessageProperties().getDeliveryTag();
+        try {
+            mqOpsService.listenUserAccountMinus(orderNo);
+            // 3.像本地消息表发送消息
+            rabbitService.sendMessage(MqConst.EXCHANGE_LOCAL_MSG, MqConst.ROUTING_LOCAL_MSG, orderNo);
+            // 4.手动应答消息（将消息从队列中删除掉）
+            channel.basicAck(deliveryTag, false);
+        } catch (GuiguException e) {
+            String msgRetryKey = "msg:retry:" + orderNo;
+            Long count = redisTemplate.opsForValue().increment(msgRetryKey);
+            // 三次重试
+            if (count >= 3) {
+                log.error("消息已经到达了重试{}次，请人工排查错误原因：{}", count, e.getMessage());
+                // 不能重试
+                channel.basicNack(deliveryTag, false, false);
+                redisTemplate.delete(msgRetryKey);
+            } else {
+                log.info("消息重试{}次", count);
+                channel.basicNack(deliveryTag, false, true);
+            }
+        } catch (Exception e) {
             log.error("签收消息时网络出现了故障，异常原因：{}", e.getMessage());
             channel.basicNack(deliveryTag, false, false);
         }

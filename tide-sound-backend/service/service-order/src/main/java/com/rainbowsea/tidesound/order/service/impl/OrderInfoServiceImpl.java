@@ -3,14 +3,21 @@ package com.rainbowsea.tidesound.order.service.impl;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.nacos.shaded.com.google.common.collect.Lists;
 import com.rainbowsea.tidesound.album.client.AlbumInfoFeignClient;
+import com.rainbowsea.tidesound.common.constant.SystemConstant;
 import com.rainbowsea.tidesound.common.execption.GuiguException;
 import com.rainbowsea.tidesound.common.result.Result;
 import com.rainbowsea.tidesound.common.util.AuthContextHolder;
+import com.rainbowsea.tidesound.common.util.MD5;
 import com.rainbowsea.tidesound.model.album.AlbumInfo;
 import com.rainbowsea.tidesound.model.album.TrackInfo;
+import com.rainbowsea.tidesound.model.order.OrderDerate;
+import com.rainbowsea.tidesound.model.order.OrderDetail;
 import com.rainbowsea.tidesound.model.order.OrderInfo;
 import com.rainbowsea.tidesound.model.user.VipServiceConfig;
+import com.rainbowsea.tidesound.order.adapter.PayWay;
 import com.rainbowsea.tidesound.order.helper.SignHelper;
+import com.rainbowsea.tidesound.order.mapper.OrderDerateMapper;
+import com.rainbowsea.tidesound.order.mapper.OrderDetailMapper;
 import com.rainbowsea.tidesound.order.mapper.OrderInfoMapper;
 import com.rainbowsea.tidesound.order.service.OrderInfoService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -26,6 +33,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -54,7 +62,20 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
 
 
     @Autowired
+    private OrderDerateMapper orderDerateMapper;
+    @Autowired
+    private OrderDetailMapper orderDetailMapper;
+
+
+
+
+    @Autowired
     private StringRedisTemplate redisTemplate;
+
+    @Autowired
+    private List<PayWay> payWayService;
+
+
 
 
     @Override
@@ -139,38 +160,153 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
 
 
         // 1.3 订单重复提交的校验
-        //  第一次提交订单之后，未看见后续的动作（1、网络原因 2.接口的并发高，处理慢） 但是你误以为失败或者以为没点上 接着又点击一次。【这就导致了重复提交】
+        //  第一次提交订单之后，未看见后续的动作（1、网络原    因 2.接口的并发高，处理慢） 但是你误以为失败或者以为没点上 接着又点击一次。【这就导致了重复提交】
         //  解决办法：对于同一个请求来说，不管调用多少次，数据都要是一致的,产生的结果是符合预期的。
         //  接口幂等性保证：方案：各种锁机制（分布式锁 本地锁） MySQL的唯一索引+防重表+本地事务  Redis+Token(最多)
         // 1(订单id)--->1001(订单编号)--->"买了个飞机"（订单名字）---100（订单的价格）
-        // 1(订单id)--->1001(订单编号)--->"买了个飞机"（订单名字）---100（订单的价格）
-        // 单端重复提交  ---TODO:多端重复提交如何实现。
-        String orderRepeatSubmitKey = AuthContextHolder.getUserId() + ":" + orderInfoVo.getTradeNo();
-        String luaScript = "if redis.call(\"exists\",KEYS[1])\n" + "then\n" + "    return redis.call(\"del\",KEYS[1])\n" + "else\n" + "    return 0\n" + "end";
-        Long execute = redisTemplate.execute(new DefaultRedisScript<Long>(luaScript, Long.class), Arrays.asList(orderRepeatSubmitKey));
-        if(execute==0){
-            throw new GuiguException(201,"订单重复提交");
+        // 2(订单id)--->1001(订单编号)--->"买了个飞机"（订单名字）---100（订单的价格）
+
+        Long userId = AuthContextHolder.getUserId();
+        List<OrderDetailVo> productList = orderInfoVo.getOrderDetailVoList().stream().collect(Collectors.toList());
+        String representativeToken = MD5.encrypt(new String(productList + ""));
+        String orderRepeatSubmitKey = userId + ":" + representativeToken;
+//        String luaScript = "if redis.call(\"exists\",KEYS[1])\n" + "then\n" + "    return redis.call(\"del\",KEYS[1])\n" + "else\n" + "    return 0\n" + "end";
+//        Long execute = redisTemplate.execute(new DefaultRedisScript<Long>(luaScript, Long.class), Arrays.asList(orderRepeatSubmitKey));
+//        if (execute == 0) {
+//            throw new GuiguException(201, "订单重复提交");
+//        }
+
+        Long increment = redisTemplate.opsForValue().increment(orderRepeatSubmitKey);
+        if (increment > 2) {
+            throw new GuiguException(201, "订单重复提交");
         }
 
-        // 2.保存订单信息(核心代码)
 
+//         查询数据库---根据订单编号查询数据库  TODO(查询数据库)
+        // 2.生成订单编号
+        String orderNo = RandomStringUtils.random(12, true, true);
 
-        // 3.生成订单编号
-
-        // 4.判断支付方式
-
+        // 3 .保存订单信息(核心代码)
+        // 3.判断支付方式
+        // if  else if else...优化  优化方式1：使用swtich case. 优化2：适配器模式
+        String payWay = orderInfoVo.getPayWay();
+//        if ("1101".equals(payWay)) {
+//            // 微信处理逻辑
+//        } else if ("1102".equals(payWay)) {
+//            // 支付宝处理逻辑
+//        } else {
+//            // 零钱支付方式
+//        }
+        // 适配器方式
+        for (PayWay way : payWayService) {
+            if (way.isSupport(payWay)) {
+                way.dealPayWay(orderInfoVo, userId, orderNo);
+            }
+        }
         // 5.订单编号返回
 
 
         Map<String, Object> map = new HashMap<>();
-        map.put("orderNo", "");
-
-
-
+        map.put("orderNo", orderNo);
+        redisTemplate.delete(orderRepeatSubmitKey);
         return map;
 
     }
 
+
+    /**
+     * 保存订单信息
+     * @param orderInfoVo
+     * @param userId
+     * @param orderNo
+     * @return
+     */
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public OrderInfo saveOrderInfo(OrderInfoVo orderInfoVo, Long userId, String orderNo) {
+        OrderInfo orderInfo = null;
+
+        try {
+            // 1.保存订单基本信息
+            orderInfo = saveOrderBasicInfo(orderInfoVo, userId, orderNo);
+
+            // 2.保存订单详情【一定会有】
+            saveOrderDetail(orderInfo.getId(), orderInfoVo);
+
+            // 3.保存订单减免【声音不减免  专辑  vip减免】
+            saveOrderDerate(orderInfo.getId(), orderInfoVo);
+
+//            int i = 1 / 0;
+        } catch (Exception e) {
+            throw new GuiguException(400, "服务内部解析数据出现了异常");
+        }
+
+        return orderInfo;
+
+    }
+
+
+    /**
+     * 保存订单减免【声音不减免  专辑  vip减免】
+     * @param orderId
+     * @param orderInfoVo
+     */
+    private void saveOrderDerate(Long orderId, OrderInfoVo orderInfoVo) {
+         orderInfoVo.getOrderDerateVoList().forEach(orderDerateVo -> {
+            OrderDerate orderDerate = new OrderDerate();
+            orderDerate.setOrderId(orderId);
+            orderDerate.setDerateType(orderDerateVo.getDerateType());
+            orderDerate.setDerateAmount(orderDerateVo.getDerateAmount());
+            orderDerate.setRemarks("有商品减免");
+            orderDerateMapper.insert(orderDerate);
+        });
+    }
+
+
+    /***
+     * 保存订单详情
+     * @param orderId
+     * @param orderInfoVo
+     */
+    private void saveOrderDetail(Long orderId, OrderInfoVo orderInfoVo) {
+        orderInfoVo.getOrderDetailVoList().stream().forEach(orderDetailVo -> {
+            OrderDetail orderDetail = new OrderDetail();
+            orderDetail.setOrderId(orderId);
+            orderDetail.setItemId(orderDetailVo.getItemId());
+            orderDetail.setItemName(orderDetailVo.getItemName());
+            orderDetail.setItemUrl(orderDetailVo.getItemUrl());
+            orderDetail.setItemPrice(orderDetailVo.getItemPrice());
+            orderDetailMapper.insert(orderDetail);
+        });
+
+    }
+
+
+    /***
+     * 保存订单基本信息
+     * @param orderInfoVo
+     * @param userId
+     * @param orderNo
+     * @return
+     */
+    private OrderInfo saveOrderBasicInfo(OrderInfoVo orderInfoVo, Long userId, String orderNo) {
+
+        OrderInfo orderInfo = new OrderInfo();
+        orderInfo.setUserId(userId);
+        orderInfo.setOrderTitle(orderInfoVo.getOrderDetailVoList().get(0).getItemName());
+        orderInfo.setOrderNo(orderNo);
+        orderInfo.setOrderStatus(SystemConstant.ORDER_STATUS_UNPAID);
+        orderInfo.setOriginalAmount(orderInfoVo.getOriginalAmount());  // 订单的原始金额
+        orderInfo.setDerateAmount(orderInfoVo.getDerateAmount()); // 订单的减免金额
+        orderInfo.setOrderAmount(orderInfoVo.getOrderAmount()); // 订单的时间金额
+        orderInfo.setItemType(orderInfoVo.getItemType());
+        orderInfo.setPayWay(orderInfoVo.getPayWay());
+
+
+        orderInfoMapper.insert(orderInfo);
+
+        return orderInfo;
+    }
 
     /**
      * 处理付款项类型是vip套餐的结算页

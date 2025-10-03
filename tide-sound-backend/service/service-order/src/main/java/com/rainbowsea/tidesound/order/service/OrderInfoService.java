@@ -25,4 +25,16 @@ public interface OrderInfoService extends IService<OrderInfo> {
      * @return
      */
     Map<String, Object> submitOrder(OrderInfoVo orderInfoVo);
+
+
+    /**
+     * 保存订单信息
+     *
+     * @param orderInfoVo
+     * @param userId
+     * @param orderNo
+     * @return
+     */
+    OrderInfo saveOrderInfo(OrderInfoVo orderInfoVo, Long userId, String orderNo);
+
 }

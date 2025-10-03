@@ -9,4 +9,16 @@ public interface MqOpsService {
      * @param content
      */
     void userAccountRegister(String content);
+
+    /**
+     * 解锁
+     * @param orderNo
+     */
+    void listenUserAccountUnlock(String orderNo);
+
+    /**
+     * 消费
+     * @param orderNo
+     */
+    void listenUserAccountMinus(String orderNo);
 }

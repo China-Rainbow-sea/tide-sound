@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
-PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN"
-"http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
 
 
 <mapper namespace="com.rainbowsea.tidesound.account.mapper.UserAccountMapper">
@@ -13,6 +15,27 @@ PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN"
 	<sql id="columns">
 		id,user_id,total_amount,lock_amount,available_amount,total_income_amount,total_pay_amount,create_time,update_time,is_deleted
 	</sql>
+
+
+	<update id="checkAndLockAmount">
+		update  user_account set lock_amount=lock_amount+#{amount},available_amount=available_amount-#{amount}
+		where  user_account.user_id=#{userId} and user_account.available_amount>=#{amount}
+
+	</update>
+	<update id="unLock">
+
+		update  user_account set lock_amount=lock_amount-#{amount},available_amount=available_amount+#{amount}
+		where  user_account.user_id=#{userId}
+
+	</update>
+	<update id="minus">
+		update user_account
+		set lock_amount=lock_amount - #{amount},
+			total_amount=total_amount - #{amount},
+			total_pay_amount=total_pay_amount + #{amount}
+		where user_account.user_id = #{userId}
+	</update>
+
 
 </mapper>
 

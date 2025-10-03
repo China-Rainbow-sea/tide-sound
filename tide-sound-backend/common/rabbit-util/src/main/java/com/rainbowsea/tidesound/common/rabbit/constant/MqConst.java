@@ -77,4 +77,11 @@ public class MqConst {
     public static final String QUEUE_KEYWORD_OUT  = "tingshu.keyword.out";
 
 
+    /**
+     * 本地消息表
+     */
+    public static final String EXCHANGE_LOCAL_MSG = "local.msg.exchange";
+    public static final String ROUTING_LOCAL_MSG = "local.msg.rk";
+    public static final String QUEUE_LOCAL_MSG = "local.msg.queue";
+
 }
