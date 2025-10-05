@@ -4,7 +4,9 @@ package com.rainbowsea.tidesound.order.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.rainbowsea.tidesound.model.order.LocalMsg;
 import com.rainbowsea.tidesound.order.mapper.LocalMsgMapper;
+import com.rainbowsea.tidesound.order.mapper.OrderInfoMapper;
 import com.rainbowsea.tidesound.order.service.MqOpsService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -15,10 +17,15 @@ import org.springframework.stereotype.Service;
  */
 
 @Service
+@Slf4j
 public class MqOpsServiceImpl implements MqOpsService {
 
     @Autowired
     private LocalMsgMapper localMsgMapper;
+
+
+    @Autowired
+    private OrderInfoMapper orderInfoMapper;
 
     @Override
     public void updateLocalMsgStatus(String content) {
@@ -30,5 +37,13 @@ public class MqOpsServiceImpl implements MqOpsService {
             localMsg.setStatus(1);
             localMsgMapper.updateById(localMsg);
         }
+    }
+
+    @Override
+    public void cancelOrder(String orderNo) {
+
+        int count = orderInfoMapper.cancelOrder(orderNo);
+
+        log.info("关闭订单：{}",count>0?"success":"fail");
     }
 }

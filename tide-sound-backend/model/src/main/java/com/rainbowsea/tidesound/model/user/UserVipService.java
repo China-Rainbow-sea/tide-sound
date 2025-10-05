@@ -31,4 +31,9 @@ public class UserVipService extends BaseEntity {
 	@TableField("expire_time")
 	private Date expireTime;
 
+
+	@Schema(description = "套餐id")
+	@TableField("vip_config_id")
+	private Integer  vipConfigId;
+
 }

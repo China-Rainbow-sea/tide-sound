@@ -86,4 +86,35 @@ public class AlbumInfoListener {
     }
 
 
+    /**
+     * 监听：操作 更新专辑的购买量
+     *
+    void updateAlbumStatNum(JSONObject jsonObject);
+     * @param content
+     * @param message
+     * @param channel
+     */
+    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = MqConst.QUEUE_ALBUM_STAT_UPDATE, durable = "true"),
+            exchange = @Exchange(value = MqConst.EXCHANGE_ALBUM, durable = "true"),
+            key = MqConst.ROUTING_ALBUM_STAT_UPDATE))
+    @SneakyThrows   // SneakyThrows可以绕开编译时候的异常 但是真正在运行期间出现异常依然会抛出来
+    public void listenAlbumStatTypeUpdate(String content, Message message, Channel channel) {
+
+
+        // 1.判断消息是否存在
+        if (StringUtils.isEmpty(content)) {
+            return;  // 不用消费
+        }
+
+
+        JSONObject jsonObject = JSONObject.parseObject(content, JSONObject.class);
+        long deliveryTag = message.getMessageProperties().getDeliveryTag();
+        // 2.消费消息
+        mqOpsService.albumStatTypeUpdate(jsonObject);
+        // 3.手动应答消息（将消息从队列中删除掉）
+        channel.basicAck(deliveryTag, false);
+
+    }
+
+
 }

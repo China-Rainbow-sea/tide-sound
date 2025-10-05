@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotEmpty;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
 
@@ -32,4 +33,9 @@ public interface OrderInfoMapper extends BaseMapper<OrderInfo> {
     List<Long> getItemTypeTrackIsPadding(@Param("userId") Long userId, @Param("itemType") String itemType);
 
 
+    @Update("update order_info set  order_info.order_status='0902' where order_info.order_no=#{orderNo} and  order_info.user_id=#{userId} and  order_info.order_status='0901'")
+    int updateOrderStatus(@Param("orderNo") String orderNo, @Param("userId") Long userId);
+
+    @Update("update order_info set  order_info.order_status='0903' where order_info.order_no=#{orderNo} and  order_info.order_status='0901'")
+    int cancelOrder(String orderNo);
 }

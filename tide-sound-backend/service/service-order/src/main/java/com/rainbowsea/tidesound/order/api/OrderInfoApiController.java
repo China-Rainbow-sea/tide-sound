@@ -3,6 +3,8 @@ package com.rainbowsea.tidesound.order.api;
 import com.alibaba.nacos.client.naming.utils.CollectionUtils;
 import com.rainbowsea.tidesound.common.login.annotation.TingshuLogin;
 import com.rainbowsea.tidesound.common.result.Result;
+import com.rainbowsea.tidesound.common.util.AuthContextHolder;
+import com.rainbowsea.tidesound.model.order.OrderInfo;
 import com.rainbowsea.tidesound.order.service.OrderInfoService;
 import com.rainbowsea.tidesound.vo.order.OrderInfoVo;
 import com.rainbowsea.tidesound.vo.order.TradeVo;
@@ -10,6 +12,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -57,6 +61,19 @@ public class OrderInfoApiController {
 
 		return Result.ok(orderNoMap);
 	}
+
+
+
+	// Request URL: http://localhost:8500/api/order/orderInfo/getOrderInfo/GVK9UeYEiSHG
+	@GetMapping("/getOrderInfo/{orderNo}")
+	@TingshuLogin
+	@Operation(summary = "根据订单编号查询订单")
+	public Result<OrderInfo> getOrderInfo(@PathVariable(value = "orderNo") String orderNo) {
+		OrderInfo orderInfo = orderInfoService.getOrderInfo(orderNo, AuthContextHolder.getUserId());
+
+		return Result.ok(orderInfo);
+	}
+
 
 }
 

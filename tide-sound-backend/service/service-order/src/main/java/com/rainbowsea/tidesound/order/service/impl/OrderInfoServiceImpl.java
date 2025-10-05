@@ -2,9 +2,12 @@ package com.rainbowsea.tidesound.order.service.impl;
 
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.nacos.shaded.com.google.common.collect.Lists;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.rainbowsea.tidesound.album.client.AlbumInfoFeignClient;
 import com.rainbowsea.tidesound.common.constant.SystemConstant;
 import com.rainbowsea.tidesound.common.execption.GuiguException;
+import com.rainbowsea.tidesound.common.rabbit.constant.MqConst;
+import com.rainbowsea.tidesound.common.rabbit.service.RabbitService;
 import com.rainbowsea.tidesound.common.result.Result;
 import com.rainbowsea.tidesound.common.util.AuthContextHolder;
 import com.rainbowsea.tidesound.common.util.MD5;
@@ -27,6 +30,7 @@ import com.rainbowsea.tidesound.vo.order.OrderDetailVo;
 import com.rainbowsea.tidesound.vo.order.OrderInfoVo;
 import com.rainbowsea.tidesound.vo.order.TradeVo;
 import com.rainbowsea.tidesound.vo.user.UserInfoVo;
+import com.rainbowsea.tidesound.vo.user.UserPaidRecordVo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -75,6 +79,10 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     @Autowired
     private List<PayWay> payWayService;
 
+
+
+    @Autowired
+    private RabbitService rabbitService;
 
 
 
@@ -245,6 +253,118 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
 
     }
 
+    @Override
+    public void PaySuccess(OrderInfoVo orderInfoVo, Long userId, String orderNo) {
+
+        // 1.修改订单的状态为已支付（1.1 判断订单状态 1.2 修改订单状态）
+        int count = orderInfoMapper.updateOrderStatus(orderNo, userId);
+        if (count == 0) {
+            log.error("修改订单状态失败");
+        } else {
+            log.info("修改订单状态成功");
+        }
+
+        // 2.像tingshu_user库中的相关表中插入流水记录（user_paid_album user_paid_track user_vip_service）
+        UserPaidRecordVo userPaidRecordVo = prepareUserPaidRecord(orderInfoVo, orderNo, userId);
+        rabbitService.sendMessage(MqConst.EXCHANGE_USER, MqConst.ROUTING_USER_PAY_RECORD, JSONObject.toJSONString(userPaidRecordVo));
+
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("orderNo", orderNo);
+        jsonObject.put("userId", userId);
+        // 3.修改titngshu_album库中的album_stat的购买量[MySQL]
+        rabbitService.sendMessage(MqConst.EXCHANGE_ALBUM, MqConst.ROUTING_ALBUM_STAT_UPDATE, jsonObject.toJSONString());
+
+        // 4.修改album_info索引库的的专辑的购买量[ES]
+        rabbitService.sendMessage(MqConst.EXCHANGE_ES_ALBUM_STAT, MqConst.ROUTING_ES_ALBUM_STAT, jsonObject.toJSONString());
+
+
+    }
+
+    @Override
+    public OrderInfo getOrderInfo(String orderNo, Long userId) {
+
+
+        // 1.根据订单编号查询订单基本信息
+        LambdaQueryWrapper<OrderInfo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(OrderInfo::getOrderNo, orderNo);
+        wrapper.eq(OrderInfo::getUserId, userId);
+        OrderInfo orderInfo = orderInfoMapper.selectOne(wrapper);
+
+        // 2.封住订单的详情数据
+        List<OrderDetail> orderDetailList = orderDetailMapper.selectList(new LambdaQueryWrapper<OrderDetail>().eq(OrderDetail::getOrderId, orderInfo.getId()));
+        orderInfo.setOrderDetailList(orderDetailList);
+        // 3.封住订单的减免数据
+        List<OrderDerate> orderDerateList = orderDerateMapper.selectList(new LambdaQueryWrapper<OrderDerate>().eq(OrderDerate::getOrderId, orderInfo.getId()));
+        orderInfo.setOrderDerateList(orderDerateList);
+        // 4.封装订单的状态名字（前端）
+        String orderInfoStatus = orderInfo.getOrderStatus();
+        String orderInfoStatusName = getOrderInfoStatusName(orderInfoStatus);
+        orderInfo.setOrderStatusName(orderInfoStatusName);
+
+        // 5.封装订单的支付名字（前端）
+        String orderInfoPayWay = orderInfo.getPayWay();
+        String orderInfoPayWayName = getOrderInfoPayWayName(orderInfoPayWay);
+        orderInfo.setPayWayName(orderInfoPayWayName);
+        return orderInfo;
+    }
+
+
+    private String getOrderInfoPayWayName(String orderInfoPayWay) {
+
+        String orderInfoPayWayName = "";
+
+        switch (orderInfoPayWay) {
+            case "1101": //微信支付
+                orderInfoPayWayName = "微信支付";
+                break;
+            case "1102": // 支付宝支付
+                orderInfoPayWayName = "支付宝支付";
+                break;
+            case "1103": // 账户余额支付
+                orderInfoPayWayName = "账户余额支付";
+        }
+        return orderInfoPayWayName;
+
+    }
+
+    private String getOrderInfoStatusName(String orderInfoStatus) {
+
+        String orderInfoStatusName = "";
+
+        switch (orderInfoStatus) {
+            case "0901": // 未支付
+                orderInfoStatusName = "未支付";
+                break;
+            case "0902": // 已支付
+                orderInfoStatusName = "已支付";
+                break;
+            case "0903": // 已关闭
+                orderInfoStatusName = "已关闭";
+        }
+        return orderInfoStatusName;
+    }
+
+
+    /**
+     * 支付后，向 tingshu_user库中的相关表中插入流水记录（user_paid_album user_paid_track user_vip_service）
+     * @param orderInfoVo
+     * @param orderNo
+     * @param userId
+     * @return
+     */
+    private UserPaidRecordVo prepareUserPaidRecord(OrderInfoVo orderInfoVo, String orderNo, Long userId) {
+
+
+        UserPaidRecordVo userPaidRecordVo = new UserPaidRecordVo();
+        userPaidRecordVo.setOrderNo(orderNo);
+        userPaidRecordVo.setUserId(userId);
+        userPaidRecordVo.setItemType(orderInfoVo.getItemType()); // 付款项类型
+        List<Long> itemIdList = orderInfoVo.getOrderDetailVoList().stream().map(OrderDetailVo::getItemId).collect(Collectors.toList());
+        userPaidRecordVo.setItemIdList(itemIdList);
+
+        return userPaidRecordVo;
+
+    }
 
     /**
      * 保存订单减免【声音不减免  专辑  vip减免】

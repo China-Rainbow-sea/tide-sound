@@ -84,4 +84,14 @@ public class MqConst {
     public static final String ROUTING_LOCAL_MSG = "local.msg.rk";
     public static final String QUEUE_LOCAL_MSG = "local.msg.queue";
 
+
+    /**
+     * ES相关的
+     */
+    public static final String EXCHANGE_ES_ALBUM_STAT = "es.album.stat.update.exchange";
+    public static final String ROUTING_ES_ALBUM_STAT = "es.album.stat.update.rk";
+    public static final String QUEUE_ES_ALBUM_STAT = "es.album.stat.update.queue";
+
+
+
 }

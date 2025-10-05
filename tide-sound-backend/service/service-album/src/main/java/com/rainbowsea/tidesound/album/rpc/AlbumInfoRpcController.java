@@ -162,4 +162,16 @@ public class AlbumInfoRpcController {
         return Result.ok(trackInfoList);
     }
 
+
+    /**
+     * 通过声音 id 获取专辑信息
+     * @param trackId
+     * @return
+     */
+    @GetMapping("/getAlbumInfoByTrackId/{trackId}")
+    Result<AlbumInfo> getAlbumInfoByTrackId(@PathVariable(value = "trackId") Long trackId) {
+
+        AlbumInfo albumInfo = albumInfoService.getAlbumInfoByTrackId(trackId);
+        return Result.ok(albumInfo);
+    }
 }

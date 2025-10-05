@@ -118,4 +118,14 @@ public interface AlbumInfoFeignClient {
     Result<List<TrackInfo>> getTrackListByCurrentTrackId(@PathVariable(value = "userId") Long userId,
                                                          @PathVariable(value = "trackId") Long trackId,
                                                          @PathVariable(value = "trackCount") Integer trackCount);
+
+
+    /**
+     * 通过声音 id获取专辑信息
+     * @param trackId
+     * @return
+     */
+    @GetMapping("/getAlbumInfoByTrackId/{trackId}")
+    Result<AlbumInfo> getAlbumInfoByTrackId(@PathVariable(value = "trackId") Long trackId);
+
 }

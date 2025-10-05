@@ -37,4 +37,21 @@ public interface OrderInfoService extends IService<OrderInfo> {
      */
     OrderInfo saveOrderInfo(OrderInfoVo orderInfoVo, Long userId, String orderNo);
 
+
+
+    /**
+     * 支付成功后的事情
+     */
+
+    void PaySuccess(OrderInfoVo orderInfoVo, Long userId, String orderNo);
+
+
+
+    /**
+     * 根据订单编号查询订单
+     *
+     * @param orderNo
+     * @return
+     */
+    OrderInfo getOrderInfo(String orderNo, Long userId);
 }

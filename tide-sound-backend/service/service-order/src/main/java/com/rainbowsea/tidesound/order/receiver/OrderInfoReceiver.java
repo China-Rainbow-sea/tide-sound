@@ -48,4 +48,29 @@ public class OrderInfoReceiver {
 
     }
 
+
+    /**
+     * RabbitMQ 延时交换机——延时30分钟，关单
+     * @param orderNo
+     * @param message
+     * @param channel
+     */
+    @RabbitListener(queues = {MqConst.QUEUE_CANCEL_ORDER})
+    @SneakyThrows   // SneakyThrows可以绕开编译时候的异常 但是真正在运行期间出现异常依然会抛出来
+    public void listenCancelOrder(String orderNo, Message message, Channel channel) {
+
+
+        // 1.判断消息是否存在
+        if (StringUtils.isEmpty(orderNo)) {
+            return;  // 不用消费
+        }
+        // 2.消费消息
+        long deliveryTag = message.getMessageProperties().getDeliveryTag();
+
+        mqOpsService.cancelOrder(orderNo);
+        // 4.手动应答消息（将消息从队列中删除掉）
+        channel.basicAck(deliveryTag, false);
+
+    }
+
 }

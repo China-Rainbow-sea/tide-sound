@@ -72,4 +72,12 @@ public interface AlbumInfoService extends IService<AlbumInfo> {
      * @return
      */
     List<Long> getAlbumInfoIdList();
+
+
+    /**
+     * 根据声音id 查询专辑对象
+     * @param trackId
+     * @return
+     */
+    AlbumInfo getAlbumInfoByTrackId(Long trackId);
 }

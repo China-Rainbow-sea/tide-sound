@@ -1,6 +1,7 @@
 package com.rainbowsea.tidesound.album.service;
 
 
+import com.alibaba.fastjson.JSONObject;
 import com.rainbowsea.tidesound.vo.album.TrackStatMqVo;
 
 /**
@@ -14,4 +15,10 @@ public interface MqOpsService {
      */
     void trackStatTypeUpdate(TrackStatMqVo trackStatMqVo);
 
+    /**
+     * 更新专辑的购买量
+     *
+     * @param jsonObject
+     */
+    void albumStatTypeUpdate(JSONObject jsonObject);
 }

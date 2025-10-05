@@ -276,6 +276,21 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
         return albumIds;
     }
 
+    @Override
+    public AlbumInfo getAlbumInfoByTrackId(Long trackId) {
+
+        TrackInfo trackInfo = trackInfoMapper.selectById(trackId);
+        if (trackInfo == null) {
+            throw new GuiguException(201, "该声音不存在");
+        }
+
+        AlbumInfo albumInfo = albumInfoMapper.selectById(trackInfo.getAlbumId());
+        if (albumInfo == null) {
+            throw new GuiguException(201, "该声音对应的专辑不存在");
+        }
+
+        return albumInfo;
+    }
 
     /**
      *  保存专辑的统计（album_stat） 操作  album_stat 数据表

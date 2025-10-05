@@ -1,7 +1,7 @@
 package com.rainbowsea.tidesound.search.service;
 
 
-
+import com.alibaba.fastjson.JSONObject;
 
 public interface MqOpsService {
     /**
@@ -15,4 +15,11 @@ public interface MqOpsService {
      * @param albumId
      */
     void albumLower(String albumId);
+
+    /**
+     * 更新专辑的购买量
+     *
+     * @param jsonObject
+     */
+    void updateAlbumStatNum(JSONObject jsonObject);
 }

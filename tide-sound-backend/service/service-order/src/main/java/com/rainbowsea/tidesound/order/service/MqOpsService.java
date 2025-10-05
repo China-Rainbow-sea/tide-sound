@@ -14,4 +14,9 @@ public interface MqOpsService {
      */
     void updateLocalMsgStatus(String content);
 
+    /**
+     * 关闭订单
+     * @param orderNo
+     */
+    void cancelOrder(String orderNo);
 }

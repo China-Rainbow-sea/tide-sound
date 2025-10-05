@@ -1,5 +1,6 @@
 package com.rainbowsea.tidesound.search.receiver;
 
+import com.alibaba.fastjson.JSONObject;
 import com.rabbitmq.client.Channel;
 import com.rainbowsea.tidesound.common.execption.GuiguException;
 import com.rainbowsea.tidesound.common.rabbit.constant.MqConst;
@@ -122,6 +123,33 @@ public class SearchInfoListener {
             log.error("签收消息时网络出现了故障，异常原因：{}", e.getMessage());
             channel.basicNack(deliveryTag, false, false);
         }
+
+    }
+
+
+    @RabbitListener(bindings = @QueueBinding(value = @Queue(value = MqConst.QUEUE_ES_ALBUM_STAT, durable = "true"),
+            exchange = @Exchange(value = MqConst.EXCHANGE_ES_ALBUM_STAT, durable = "true"),
+            key = MqConst.ROUTING_ES_ALBUM_STAT))
+    @SneakyThrows   // SneakyThrows可以绕开编译时候的异常 但是真正在运行期间出现异常依然会抛出来
+    public void listenAlbumStatUpdate(String content, Message message, Channel channel) {
+
+
+        // 1.判断消息是否存在
+        if (StringUtils.isEmpty(content)) {
+            return;  // 不用消费
+        }
+
+
+        JSONObject jsonObject = JSONObject.parseObject(content, JSONObject.class);
+
+        long deliveryTag = message.getMessageProperties().getDeliveryTag();
+
+        // 2.消费消息
+        mqOpsService.updateAlbumStatNum(jsonObject);
+
+        // 3.手动应答消息（将消息从队列中删除掉）
+        channel.basicAck(deliveryTag, false);
+
 
     }
 
