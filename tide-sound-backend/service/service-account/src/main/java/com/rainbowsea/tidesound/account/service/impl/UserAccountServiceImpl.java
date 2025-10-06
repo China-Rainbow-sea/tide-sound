@@ -2,12 +2,15 @@ package com.rainbowsea.tidesound.account.service.impl;
 
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.rainbowsea.tidesound.account.mapper.RechargeInfoMapper;
 import com.rainbowsea.tidesound.account.mapper.UserAccountDetailMapper;
 import com.rainbowsea.tidesound.account.mapper.UserAccountMapper;
 import com.rainbowsea.tidesound.account.service.UserAccountService;
 import com.rainbowsea.tidesound.common.execption.GuiguException;
 import com.rainbowsea.tidesound.common.result.Result;
 import com.rainbowsea.tidesound.common.result.ResultCodeEnum;
+import com.rainbowsea.tidesound.model.account.RechargeInfo;
 import com.rainbowsea.tidesound.model.account.UserAccount;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.rainbowsea.tidesound.model.account.UserAccountDetail;
@@ -32,6 +35,11 @@ public class UserAccountServiceImpl extends ServiceImpl<UserAccountMapper, UserA
 
     @Autowired
     private StringRedisTemplate redisTemplate;
+
+
+    @Autowired
+    private RechargeInfoMapper rechargeInfoMapper;
+
     @Autowired
     private UserAccountDetailMapper userAccountDetailMapper;
 
@@ -124,7 +132,7 @@ public class UserAccountServiceImpl extends ServiceImpl<UserAccountMapper, UserA
             accountLockResultVo.setContent(content);
 
             // 3.3 记录流水（用户对钱的操作到底干了什么）
-            this.log(userId, amount, "锁定：" + content, orderNo, "1202-锁定");
+            this.log(userId, amount, "锁定：" + content, orderNo, "1202");
 
             // 3.4 保存到redis中(主要为了解锁和消费的时候取数据方便)
             redisTemplate.opsForValue().set(dataKey, JSONObject.toJSONString(accountLockResultVo));
@@ -155,5 +163,28 @@ public class UserAccountServiceImpl extends ServiceImpl<UserAccountMapper, UserA
         userAccountDetailMapper.insert(userAccountDetail);
 
 
+    }
+
+    @Override
+    public RechargeInfo getRechargeInfoByOrderNo(String orderNo, Long userId) {
+
+        LambdaQueryWrapper<RechargeInfo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(RechargeInfo::getOrderNo, orderNo);
+        wrapper.eq(RechargeInfo::getUserId, userId);
+        RechargeInfo rechargeInfo = rechargeInfoMapper.selectOne(wrapper);
+        return rechargeInfo;
+    }
+
+    @Override
+    public IPage<UserAccountDetail> findUserConsumePage(IPage<UserAccountDetail> page, Long userId) {
+
+
+        return userAccountDetailMapper.findUserConsumePage(page, userId);
+    }
+
+    @Override
+    public IPage<UserAccountDetail> findUserRechargePage(IPage<UserAccountDetail> page, Long userId) {
+
+        return userAccountDetailMapper.findUserRechargePage(page, userId);
     }
 }

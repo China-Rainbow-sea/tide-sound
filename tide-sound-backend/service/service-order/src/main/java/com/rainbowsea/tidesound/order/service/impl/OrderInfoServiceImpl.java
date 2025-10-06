@@ -3,6 +3,7 @@ package com.rainbowsea.tidesound.order.service.impl;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.nacos.shaded.com.google.common.collect.Lists;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.rainbowsea.tidesound.album.client.AlbumInfoFeignClient;
 import com.rainbowsea.tidesound.common.constant.SystemConstant;
 import com.rainbowsea.tidesound.common.execption.GuiguException;
@@ -111,13 +112,18 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
 
         }
 
+        List<OrderDetailVo> productList = orderInfoVo.getOrderDetailVoList().stream().collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(productList)) {
+            return orderInfoVo;
+        }
+
         // 签名设置
         orderInfoVo.setTimestamp(System.currentTimeMillis());
         String sign = SignHelper.getSign(JSONObject.parseObject(JSONObject.toJSONString(orderInfoVo), Map.class));
         orderInfoVo.setSign(sign);
 
-
-        String orderRepeatSubmitKey = userId + ":" + orderInfoVo.getTradeNo();
+        String representativeToken = MD5.encrypt(new String(productList + ""));
+        String orderRepeatSubmitKey = userId + ":" + representativeToken;  // 有代表性（代表买的商品内容）
         redisTemplate.opsForValue().set(orderRepeatSubmitKey, "1");
         return orderInfoVo;
 
@@ -254,7 +260,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     }
 
     @Override
-    public void PaySuccess(OrderInfoVo orderInfoVo, Long userId, String orderNo) {
+    public void PaySuccess(Long userId, String orderNo) {
 
         // 1.修改订单的状态为已支付（1.1 判断订单状态 1.2 修改订单状态）
         int count = orderInfoMapper.updateOrderStatus(orderNo, userId);
@@ -265,7 +271,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         }
 
         // 2.像tingshu_user库中的相关表中插入流水记录（user_paid_album user_paid_track user_vip_service）
-        UserPaidRecordVo userPaidRecordVo = prepareUserPaidRecord(orderInfoVo, orderNo, userId);
+        UserPaidRecordVo userPaidRecordVo = prepareUserPaidRecord(orderNo, userId);
         rabbitService.sendMessage(MqConst.EXCHANGE_USER, MqConst.ROUTING_USER_PAY_RECORD, JSONObject.toJSONString(userPaidRecordVo));
 
         JSONObject jsonObject = new JSONObject();
@@ -308,6 +314,42 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         return orderInfo;
     }
 
+    @Override
+    public IPage<OrderInfo> findUserPage(IPage<OrderInfo> orderInfoPage, Long userId) {
+
+
+        // 1.查询我的订单
+        LambdaQueryWrapper<OrderInfo> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(OrderInfo::getUserId, userId);
+        wrapper.orderByDesc(OrderInfo::getUpdateTime);
+        wrapper.eq(OrderInfo::getIsDeleted, 0);
+        IPage<OrderInfo> orderInfoIPage = this.page(orderInfoPage, wrapper);
+
+        orderInfoIPage.getRecords().stream().forEach(orderInfo -> {
+
+            String orderInfoStatusName = getOrderInfoStatusName(orderInfo.getOrderStatus());
+            orderInfo.setOrderStatusName(orderInfoStatusName); // 订单状态名字
+            String orderInfoPayWayName = getOrderInfoPayWayName(orderInfo.getPayWay());
+            orderInfo.setPayWayName(orderInfoPayWayName); // 订单支付方式名字
+
+            LambdaQueryWrapper<OrderDetail> wrapper1 = new LambdaQueryWrapper<>();
+            wrapper1.eq(OrderDetail::getOrderId, orderInfo.getId());
+            List<OrderDetail> orderDetailList = orderDetailMapper.selectList(wrapper1);
+            orderInfo.setOrderDetailList(orderDetailList); // 订单详情数据
+
+            LambdaQueryWrapper<OrderDerate> wrapper2 = new LambdaQueryWrapper<>();
+            wrapper2.eq(OrderDerate::getOrderId, orderInfo.getId());
+            List<OrderDerate> orderDerateList = orderDerateMapper.selectList(wrapper2);
+            orderInfo.setOrderDerateList(orderDerateList);// 订单减免数据
+
+        });
+
+        // 2.返回修改后的orderInfoIPage对象的属性
+
+        return orderInfoIPage;
+
+    }
+
 
     private String getOrderInfoPayWayName(String orderInfoPayWay) {
 
@@ -347,19 +389,21 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
 
     /**
      * 支付后，向 tingshu_user库中的相关表中插入流水记录（user_paid_album user_paid_track user_vip_service）
-     * @param orderInfoVo
+     * @param
      * @param orderNo
      * @param userId
      * @return
      */
-    private UserPaidRecordVo prepareUserPaidRecord(OrderInfoVo orderInfoVo, String orderNo, Long userId) {
+    private UserPaidRecordVo prepareUserPaidRecord(String orderNo, Long userId) {
 
 
         UserPaidRecordVo userPaidRecordVo = new UserPaidRecordVo();
         userPaidRecordVo.setOrderNo(orderNo);
         userPaidRecordVo.setUserId(userId);
-        userPaidRecordVo.setItemType(orderInfoVo.getItemType()); // 付款项类型
-        List<Long> itemIdList = orderInfoVo.getOrderDetailVoList().stream().map(OrderDetailVo::getItemId).collect(Collectors.toList());
+
+        OrderInfo orderInfo = getOrderInfo(orderNo, userId);
+        userPaidRecordVo.setItemType(orderInfo.getItemType()); // 付款项类型
+        List<Long> itemIdList = orderInfo.getOrderDetailList().stream().map(OrderDetail::getItemId).collect(Collectors.toList());
         userPaidRecordVo.setItemIdList(itemIdList);
 
         return userPaidRecordVo;
@@ -450,6 +494,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
             List<Long> exitItemIds = new ArrayList<>();
             exitItemIds.add(tradeVo.getItemId());
             orderInfoVo.setExitItemIdList(exitItemIds);
+            orderInfoVo.setOrderDetailVoList(new ArrayList<>());
             return orderInfoVo;
         }
         String tradeNo = RandomStringUtils.random(10, false, true);
@@ -545,6 +590,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
                 exitTrackIds.add(trackInfo.getId());
             }
             orderInfoVo.setExitItemIdList(exitTrackIds);
+            orderInfoVo.setOrderDetailVoList(new ArrayList<>());
             log.error("该声音已下单，请勿重复购买！");
             return orderInfoVo;
         } else {
@@ -606,6 +652,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
             List<Long> exitItemIds = new ArrayList<>();
             exitItemIds.add(itemId);
             orderInfoVo.setExitItemIdList(exitItemIds);
+            orderInfoVo.setOrderDetailVoList(new ArrayList<>());
             return orderInfoVo;
         }
 
@@ -616,6 +663,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
             List<Long> exitItemIds = new ArrayList<>();
             exitItemIds.add(itemId);
             orderInfoVo.setExitItemIdList(exitItemIds);
+            orderInfoVo.setOrderDetailVoList(new ArrayList<>());
             return orderInfoVo;
         }
 

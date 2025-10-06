@@ -57,4 +57,12 @@ public interface UserInfoFeignClient {
     Result<VipServiceConfig> getVipConfigById(@PathVariable(value = "itemId") Long itemId);
 
 
+    /**
+     * 通过 openid 获取用户 id
+     * @param openId
+     * @return
+     */
+    @GetMapping("/getUserIdByOpenId/{openId}")
+    Result<String> getUserIdByOpenId(@PathVariable(value = "openId") String openId);
+
 }

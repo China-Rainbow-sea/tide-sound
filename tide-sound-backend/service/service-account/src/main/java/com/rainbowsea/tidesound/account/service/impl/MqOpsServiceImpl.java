@@ -1,16 +1,20 @@
 package com.rainbowsea.tidesound.account.service.impl;
 
 import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.rainbowsea.tidesound.account.mapper.RechargeInfoMapper;
 import com.rainbowsea.tidesound.account.mapper.UserAccountMapper;
 import com.rainbowsea.tidesound.account.service.MqOpsService;
 import com.rainbowsea.tidesound.account.service.UserAccountService;
 import com.rainbowsea.tidesound.common.execption.GuiguException;
+import com.rainbowsea.tidesound.model.account.RechargeInfo;
 import com.rainbowsea.tidesound.model.account.UserAccount;
 import com.rainbowsea.tidesound.vo.account.AccountLockResultVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
@@ -30,6 +34,9 @@ public class MqOpsServiceImpl implements MqOpsService {
 
     @Autowired
     private UserAccountService userAccountService;
+
+    @Autowired
+    private RechargeInfoMapper rechargeInfoMapper;
 
 
     @Override
@@ -74,7 +81,7 @@ public class MqOpsServiceImpl implements MqOpsService {
             try {
                 int count = userAccountMapper.unLock(userId, amount);
                 // 3.解锁记录存放到流水表中
-                userAccountService.log(userId, amount, "解锁：" + content, orderNo, "1203-解锁");
+                userAccountService.log(userId, amount, "解锁：" + content, orderNo, "1203");
 
                 redisTemplate.delete(dataKey);// 正常干完活才能删除缓存标识key
 
@@ -115,7 +122,7 @@ public class MqOpsServiceImpl implements MqOpsService {
             try {
                 int count = userAccountMapper.minus(userId, amount);
                 // 3.解锁记录存放到流水表中
-                userAccountService.log(userId, amount, "消费：" + content, orderNo, "1204-消费");
+                userAccountService.log(userId, amount, "消费：" + content, orderNo, "1204");
 
                 // 4.删除缓存中的锁定对象
                 redisTemplate.delete(dataKey);
@@ -129,5 +136,30 @@ public class MqOpsServiceImpl implements MqOpsService {
         }
 
 
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void userAccountOpsRecharge(String userId, String orderNo) {
+
+        // 1.根据订单编号以及用户id查询零钱对象
+        RechargeInfo rechargeInfo = rechargeInfoMapper.selectOne(new LambdaQueryWrapper<RechargeInfo>().eq(RechargeInfo::getOrderNo, orderNo).eq(RechargeInfo::getUserId, userId));
+        if (rechargeInfo == null) {
+            return;
+        }
+
+
+        // 2.修改零钱订单的状态
+        int count = rechargeInfoMapper.updateRechargeStatus(userId, orderNo);
+        log.info("修改零钱订单状态：{}", count > 0 ? "success" : "fail");
+
+
+        // 3.修改用户账户的余额信息
+        int count1 = userAccountMapper.updateUserAccount(userId, rechargeInfo.getRechargeAmount());
+        log.info("修用户账户信息：{}", count1 > 0 ? "success" : "fail");
+
+
+        // 4.记录用户账户流水
+        userAccountService.log(Long.parseLong(userId), rechargeInfo.getRechargeAmount(), "充值:" + rechargeInfo.getRechargeAmount(), orderNo, "1201");
     }
 }

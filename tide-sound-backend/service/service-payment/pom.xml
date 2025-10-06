@@ -18,14 +18,10 @@
     </properties>
 
     <dependencies>
+        <!--        微信支付 api v3 -->
         <dependency>
             <groupId>com.github.wechatpay-apiv3</groupId>
             <artifactId>wechatpay-java</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.rainbowsea</groupId>
-            <artifactId>rabbit-util</artifactId>
-            <version>1.0</version>
         </dependency>
     </dependencies>
 

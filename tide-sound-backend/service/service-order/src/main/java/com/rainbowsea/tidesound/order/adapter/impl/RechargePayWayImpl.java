@@ -129,7 +129,7 @@ public class RechargePayWayImpl implements PayWay {
             rabbitService.sendMessage(MqConst.EXCHANGE_ACCOUNT, MqConst.ROUTING_ACCOUNT_MINUS, orderNo);
 
             // 4.处理【零钱】支付成功之后的事情
-            orderInfoService.PaySuccess(orderInfoVo, userId, orderNo);
+            orderInfoService.PaySuccess(userId, orderNo);
         } catch (GuiguException e) {
             // 反向修改账户微服务下的user_account库对应的表 lock_amount和avliable_amount)
             // PRC  OR  发消息

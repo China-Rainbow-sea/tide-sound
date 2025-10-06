@@ -1,5 +1,6 @@
 package com.rainbowsea.tidesound.order.service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.rainbowsea.tidesound.model.order.OrderInfo;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.rainbowsea.tidesound.vo.order.OrderInfoVo;
@@ -38,13 +39,11 @@ public interface OrderInfoService extends IService<OrderInfo> {
     OrderInfo saveOrderInfo(OrderInfoVo orderInfoVo, Long userId, String orderNo);
 
 
-
     /**
      * 支付成功后的事情
      */
 
-    void PaySuccess(OrderInfoVo orderInfoVo, Long userId, String orderNo);
-
+    void PaySuccess(Long userId, String orderNo);
 
 
     /**
@@ -54,4 +53,15 @@ public interface OrderInfoService extends IService<OrderInfo> {
      * @return
      */
     OrderInfo getOrderInfo(String orderNo, Long userId);
+
+    /**
+     * 分页查询我的订单
+     *
+     * @param orderInfoPage
+     * @param userId
+     * @return
+     */
+    IPage<OrderInfo> findUserPage(IPage<OrderInfo> orderInfoPage, Long userId);
+
+
 }

@@ -36,4 +36,10 @@ public class UserInfoDegradeFeignClient implements UserInfoFeignClient {
         // TODO 降级逻辑
         return Result.fail();
     }
+
+    @Override
+    public Result<String> getUserIdByOpenId(String openId) {
+        // TODO 降级逻辑
+        return Result.fail();
+    }
 }

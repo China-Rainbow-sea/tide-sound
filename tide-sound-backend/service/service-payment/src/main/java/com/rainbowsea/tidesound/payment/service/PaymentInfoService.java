@@ -5,4 +5,13 @@ import com.baomidou.mybatisplus.extension.service.IService;
 
 public interface PaymentInfoService extends IService<PaymentInfo> {
 
+    /**
+     * 保存订单支付信息
+     *
+     * @param wxPayItemType
+     * @param orderNo
+     * @return
+     */
+    PaymentInfo savePaymentInfo(String wxPayItemType, String orderNo);
+
 }

@@ -2,9 +2,11 @@ package com.rainbowsea.tidesound.account.client;
 
 import com.rainbowsea.tidesound.account.client.impl.UserAccountDegradeFeignClient;
 import com.rainbowsea.tidesound.common.result.Result;
+import com.rainbowsea.tidesound.model.account.RechargeInfo;
 import com.rainbowsea.tidesound.vo.account.AccountLockResultVo;
 import com.rainbowsea.tidesound.vo.account.AccountLockVo;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -33,5 +35,14 @@ public interface UserAccountFeignClient {
     @PostMapping("/checkAndLockAmount")
     Result<AccountLockResultVo> checkAndLockAmount(@RequestBody AccountLockVo accountLockVo);
 
+
+    /**
+     *按订单号获取充值信息
+     * @param orderNo
+     * @param userId
+     * @return
+     */
+    @PostMapping("/getRechargeInfoByOrderNo/{orderNo}/{userId}")
+    Result<RechargeInfo> getRechargeInfoByOrderNo(@PathVariable(value = "orderNo") String orderNo, @PathVariable(value = "userId") Long userId);
 
 }

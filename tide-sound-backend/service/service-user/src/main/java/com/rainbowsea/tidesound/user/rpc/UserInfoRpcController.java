@@ -1,6 +1,8 @@
 package com.rainbowsea.tidesound.user.rpc;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.rainbowsea.tidesound.common.result.Result;
+import com.rainbowsea.tidesound.model.user.UserInfo;
 import com.rainbowsea.tidesound.model.user.VipServiceConfig;
 import com.rainbowsea.tidesound.user.service.UserInfoService;
 import com.rainbowsea.tidesound.user.service.VipServiceConfigService;
@@ -83,6 +85,24 @@ public class UserInfoRpcController {
         return Result.ok(vipServiceConfig);
 
 
+    }
+
+
+    /**
+     * 通过 openid 获取用户 id
+     * @param openId
+     * @return
+     */
+    @GetMapping("/getUserIdByOpenId/{openId}")
+    Result<String> getUserIdByOpenId(@PathVariable(value = "openId") String openId) {
+
+
+        LambdaQueryWrapper<UserInfo> wrapper = new LambdaQueryWrapper<UserInfo>();
+        wrapper.eq(UserInfo::getWxOpenId, openId);
+        UserInfo userInfo = userInfoService.getOne(wrapper);
+
+
+        return Result.ok(userInfo.getId().toString());
     }
 
 }

@@ -1,6 +1,8 @@
 package com.rainbowsea.tidesound.order.api;
 
 import com.alibaba.nacos.client.naming.utils.CollectionUtils;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.rainbowsea.tidesound.common.login.annotation.TingshuLogin;
 import com.rainbowsea.tidesound.common.result.Result;
 import com.rainbowsea.tidesound.common.util.AuthContextHolder;
@@ -72,6 +74,23 @@ public class OrderInfoApiController {
 		OrderInfo orderInfo = orderInfoService.getOrderInfo(orderNo, AuthContextHolder.getUserId());
 
 		return Result.ok(orderInfo);
+	}
+
+
+	// Request URL: http://192.168.200.1:8500/api/order/orderInfo/findUserPage/1/10
+	@GetMapping("/findUserPage/{pn}/{pz}")
+	@TingshuLogin
+	@Operation(summary = "分页查询我的订单")
+	public Result findUserPage(@PathVariable(value = "pn") Long pn,
+							   @PathVariable(value = "pz") Long pz) {
+
+
+		IPage<OrderInfo> orderInfoPage = new Page<>(pn, pz);
+
+		orderInfoPage = orderInfoService.findUserPage(orderInfoPage, AuthContextHolder.getUserId());
+
+		return Result.ok(orderInfoPage);
+
 	}
 
 

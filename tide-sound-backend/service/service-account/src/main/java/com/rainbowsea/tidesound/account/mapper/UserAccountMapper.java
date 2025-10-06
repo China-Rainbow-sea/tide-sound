@@ -37,4 +37,6 @@ public interface UserAccountMapper extends BaseMapper<UserAccount> {
      */
     int minus(@Param("userId") Long userId, @Param("amount") BigDecimal amount);
 
+    int updateUserAccount(@Param("userId") String userId, @Param("amount") BigDecimal rechargeAmount);
+
 }

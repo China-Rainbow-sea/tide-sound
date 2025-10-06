@@ -36,6 +36,14 @@
 		where user_account.user_id = #{userId}
 	</update>
 
+	<update id="updateUserAccount">
+		update user_account
+		set  total_amount=total_amount + #{amount},
+			 total_income_amount=total_income_amount + #{amount},
+			 available_amount=available_amount+#{amount}
+		where user_account.user_id = #{userId}
+	</update>
+
 
 </mapper>
 

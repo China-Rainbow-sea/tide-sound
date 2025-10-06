@@ -21,4 +21,11 @@ public interface MqOpsService {
      * @param orderNo
      */
     void listenUserAccountMinus(String orderNo);
+
+    /**
+     * 微信支付成功对账户零钱的操作
+     * @param userId
+     * @param orderNo
+     */
+    void userAccountOpsRecharge(String userId, String orderNo);
 }
