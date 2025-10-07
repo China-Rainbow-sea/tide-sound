@@ -53,11 +53,15 @@ public class WxPayServiceImpl implements WxPayService {
     @Autowired
     private PaymentInfoMapper paymentInfoMapper;
 
+	@Autowired
+	private PaymentInfoService paymentInfoService;
+
+
+
+
     @Autowired
     private WxPayV3Config wxPayV3Config;
 
-	@Autowired
-	private PaymentInfoService paymentInfoService;
 
     @Override
     public Map<String, Object> createJsapi(String wxPayItemType, String orderNo) {

@@ -31,7 +31,7 @@ public class WxPayApiController {
 
     //  Request URL: http://192.168.200.1:8500/api/payment/wxPay/createJsapi/1301/PBrSdZ4ufok8
     @PostMapping("/createJsapi/{wxPayItemType}/{orderNo}")
-    @Operation(summary = "预支付下单")  // 用户可以看到微信的支付二维码。[两个位置都会调到：下商品单或者充值]
+    @Operation(summary = "预支付下单")  // 用户可以看到微信的支付二维码。[两个位置都会调到：微信支付(下商品单或者充值)]
     @TingshuLogin
     public Result createJsapi(@PathVariable(value = "wxPayItemType") String wxPayItemType,
                               @PathVariable(value = "orderNo") String orderNo) {
@@ -43,7 +43,14 @@ public class WxPayApiController {
 
 
     // Request URL: http://192.168.200.1:8500/api/payment/wxPay/queryPayStatus/H4F2LIiBiHTf
-    @GetMapping("/queryPayStatus/{orderNo}")  // 前端主动调用: 前端会在30s内调用
+
+    /**
+     * 编写对外让前端主动访问微信，查询支付状态(是否支付成功)的微信支付下单的接口 Controller 层
+     * 前端主动调用: 前端会在30s内调用
+     * @param orderNo
+     * @return
+     */
+    @GetMapping("/queryPayStatus/{orderNo}")
     @Operation(summary = "查询订单的支付状态")
     @TingshuLogin
     public Result queryPayStatus(@PathVariable(value = "orderNo") String orderNo) {
@@ -67,7 +74,12 @@ public class WxPayApiController {
 
 
     // api/payment/wxPay/notify
-
+    /**
+     * 微信调用的
+     * 微信支付回调处理
+     * @param httpServletRequest
+     * @return
+     */
     @PostMapping("/notify")
     @Operation(summary = "异步通知支付结果")  // 微信调用的
     public Map asyncNotify(HttpServletRequest httpServletRequest) {

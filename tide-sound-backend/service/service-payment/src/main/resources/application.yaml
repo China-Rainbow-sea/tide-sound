@@ -62,7 +62,7 @@ mybatis-plus:
 #    #小程序微信公众平台appId
 #    appid: xxx  # 我的
 #    #商户号
-#    merchantId: xxx  # 尚硅谷（商户）
+#    merchantId: xxx  # xxx（商户）
 #    #商户API私钥路径
 #    privateKeyPath: xxx   #商户证书（自己申请）---为了以后加签将数据传给微信
 #    #商户证书序列号
@@ -70,4 +70,4 @@ mybatis-plus:
 #    #商户APIV3密钥
 #    apiV3key: xxx   # 去微信平台获取（异步回调解密数据）
 #    #异步回调地址:1.公网能够访问（互联） 2.全世界唯一   内网穿透的工具（作用将内网转换成一个公网并且是唯一）
-#    notifyUrl: http://huzhongkui.free.idcfengye.com/api/payment/wxPay/notify   # 微信异步通知支付是否成功
+#    notifyUrl: http://xxx.xxx.xxx.com/api/payment/wxPay/notify   # 微信异步通知支付是否成功
