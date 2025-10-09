@@ -438,4 +438,24 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
         return pageParam.setRecords(userCollectVoList).setTotal(count);
     }
 
+    @Override
+    public void updateExpireVip() {
+
+        // 1.查询过期的vip
+        LambdaQueryWrapper<UserInfo> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(UserInfo::getIsVip, 1);
+        queryWrapper.lt(UserInfo::getVipExpireTime, new Date());
+        queryWrapper.eq(UserInfo::getIsDeleted, 0);
+
+
+        List<UserInfo> userInfos = userInfoMapper.selectList(queryWrapper);
+
+        // 2.修改
+        userInfos.stream().forEach(userInfo -> {
+            userInfo.setIsVip(0);
+            userInfoMapper.updateById(userInfo);
+        });
+
+    }
+
 }

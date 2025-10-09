@@ -65,4 +65,11 @@ public interface UserInfoFeignClient {
     @GetMapping("/getUserIdByOpenId/{openId}")
     Result<String> getUserIdByOpenId(@PathVariable(value = "openId") String openId);
 
+
+    /**
+     * 更新 VIP 到期失效状态
+     */
+    @GetMapping("/updateExpireVip")
+    void updateExpireVip();
+
 }

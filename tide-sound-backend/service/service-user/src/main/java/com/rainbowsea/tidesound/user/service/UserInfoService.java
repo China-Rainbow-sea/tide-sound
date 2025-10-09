@@ -103,4 +103,8 @@ public interface UserInfoService extends IService<UserInfo> {
      */
     IPage<UserCollectVo> findUserCollectPage(IPage<UserCollectVo> pageParam);
 
+    /**
+     * 更新vip过期时间
+     */
+    void updateExpireVip();
 }

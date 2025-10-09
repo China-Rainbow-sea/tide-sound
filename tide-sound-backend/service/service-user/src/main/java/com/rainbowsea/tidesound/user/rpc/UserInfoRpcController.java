@@ -105,4 +105,13 @@ public class UserInfoRpcController {
         return Result.ok(userInfo.getId().toString());
     }
 
+
+    /**
+     * 更新 VIP 到期失效状态
+     */
+    @GetMapping("/updateExpireVip")
+    void updateExpireVip() {
+        userInfoService.updateExpireVip();
+    }
+
 }

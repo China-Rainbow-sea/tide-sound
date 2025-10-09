@@ -42,4 +42,10 @@ public class UserInfoDegradeFeignClient implements UserInfoFeignClient {
         // TODO 降级逻辑
         return Result.fail();
     }
+
+    @Override
+    public void updateExpireVip() {
+        // TODO 降级逻辑
+        return ;
+    }
 }
