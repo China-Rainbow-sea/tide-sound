@@ -1,0 +1,47 @@
+package com.xxl.job.executor.sample.frameless;
+
+import com.xxl.job.core.executor.XxlJobExecutor;
+import com.xxl.job.core.handler.IJobHandler;
+import com.xxl.job.executor.sample.frameless.config.FrameLessXxlJobConfig;
+import com.xxl.job.executor.sample.frameless.jobhandler.DemoHandler;
+import com.xxl.job.executor.sample.frameless.jobhandler.GluetTask;
+import com.xxl.job.executor.sample.frameless.jobhandler.HelloWorld;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.TimeUnit;
+
+/**
+ * @author xuxueli 2018-10-31 19:05:43
+ */
+public class FramelessApplication {
+    private static Logger logger = LoggerFactory.getLogger(FramelessApplication.class);
+
+    public static void main(String[] args) {
+
+        try {
+            // start
+            FrameLessXxlJobConfig.getInstance().initXxlJobExecutor();
+
+
+            // 手动将执行任务对应的Handler注册到容器中去
+            XxlJobExecutor.registJobHandler("bcd", new DemoHandler());
+
+            // Blocks until interrupted
+            while (true) {
+                try {
+                    TimeUnit.HOURS.sleep(1);
+                } catch (InterruptedException e) {
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+        } finally {
+            // destroy
+            FrameLessXxlJobConfig.getInstance().destroyXxlJobExecutor();
+        }
+
+    }
+
+}
