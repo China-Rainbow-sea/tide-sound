@@ -2,7 +2,7 @@ server:
   port: 8550
 
 spring:
-#  jackson:
+  #  jackson:
   #    time-zone: GMT+8
   #    date-format: yyyy-MM-dd HH:mm:ss
   # MySQL
@@ -36,6 +36,25 @@ spring:
       simple:
         acknowledge-mode: manual #默认情况下消息消费者是自动确认消息的，如果要手动确认消息则需要修改确认模式为manual
         prefetch: 1 # 在prefetch=1的情况下，消费者在确认当前消息之前不会收到新的消息  在多个消费者下也不会将多个未确认的消息同时发送给同一个消费者。
+
+
+seata:
+  application-id: ${spring.application.name}
+  registry:
+    type: nacos # 使用nacos作为注册中心
+    nacos:
+      server-addr: 192.168.76.15:8848 # nacos服务地址
+      group: DEFAULT_GROUP # 默认服务分组
+      namespace: "" # 默认命名空间
+      cluster: default # 默认TC集群名称
+  config:
+    # 指定nacos作为配置中心
+    type: nacos
+    nacos:
+      server-addr: 192.168.76.15:8848
+      namespace: ""
+      group: DEFAULT_GROUP
+      data-id: seataServer.properties
 
 
 #打印SQL

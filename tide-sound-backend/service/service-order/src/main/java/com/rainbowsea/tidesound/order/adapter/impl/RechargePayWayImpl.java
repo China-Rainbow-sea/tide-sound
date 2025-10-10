@@ -18,10 +18,12 @@ import com.rainbowsea.tidesound.order.service.OrderInfoService;
 import com.rainbowsea.tidesound.vo.account.AccountLockResultVo;
 import com.rainbowsea.tidesound.vo.account.AccountLockVo;
 import com.rainbowsea.tidesound.vo.order.OrderInfoVo;
+import io.seata.spring.annotation.GlobalTransactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 /**
@@ -105,6 +107,7 @@ public class RechargePayWayImpl implements PayWay {
      * @param userId
      * @param orderNo
      */
+    @GlobalTransactional
     @Override
     public void dealPayWay(OrderInfoVo orderInfoVo, Long userId, String orderNo) {
         // 零钱支付逻辑
@@ -121,7 +124,7 @@ public class RechargePayWayImpl implements PayWay {
         // 2.保存订单信息
         try {
             // 2.1 初始化本地消息表
-            initLocalMsg(orderNo);
+            this.initLocalMsg(orderNo);
             // 2.2 保存订单信息
             orderInfoService.saveOrderInfo(orderInfoVo, userId, orderNo);
             // 3.解锁以及真正的扣减余额（total_amount以及lock_amount）
@@ -133,9 +136,10 @@ public class RechargePayWayImpl implements PayWay {
         } catch (GuiguException e) {
             // 反向修改账户微服务下的user_account库对应的表 lock_amount和avliable_amount)
             // PRC  OR  发消息
-            rabbitService.sendMessage(MqConst.EXCHANGE_ACCOUNT, MqConst.ROUTING_ACCOUNT_UNLOCK, orderNo);
-            unLockCacheKey = "unlock:fail:flag" + orderNo;
-            redisTemplate.opsForValue().set(unLockCacheKey, "1");
+            //rabbitService.sendMessage(MqConst.EXCHANGE_ACCOUNT, MqConst.ROUTING_ACCOUNT_UNLOCK, orderNo);
+            //unLockCacheKey = "unlock:fail:flag" + orderNo;
+            //redisTemplate.opsForValue().set(unLockCacheKey, "1");
+            throw new GuiguException(201,"订单数据库的操作出现了异常");
         } catch (Exception e) {
             rabbitService.sendMessage(MqConst.EXCHANGE_ACCOUNT, MqConst.ROUTING_ACCOUNT_MINUS, orderNo);
             minusCacheKey = "minus:fail:flag" + orderNo;
@@ -145,6 +149,7 @@ public class RechargePayWayImpl implements PayWay {
 
     }
 
+    @Transactional
     public void initLocalMsg(String orderNo) {
         LocalMsg localMsg = new LocalMsg();
         localMsg.setMsgContent(orderNo);
