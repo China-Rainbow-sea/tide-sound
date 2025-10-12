@@ -24,7 +24,7 @@ import java.util.List;
  * @author qy
  */
 @FeignClient(value = "service-album", fallback = AlbumInfoDegradeFeignClient.class
-        , contextId = "albumInfoFeignClient", path = "/rpc/inner/albuminfo")
+        , path = "/rpc/inner/albuminfo")
 public interface AlbumInfoFeignClient {
 
 

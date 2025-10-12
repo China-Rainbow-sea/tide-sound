@@ -19,6 +19,13 @@ spring:
     url: jdbc:mysql://192.168.76.15:3306/tingshu_account
     username: root
     password: root
+  #Redis的配置
+  data:
+    redis:
+      host: 192.168.76.15
+      port: 6379
+      password: root
+      database: 0
 
   # RabbitMQ
   rabbitmq:

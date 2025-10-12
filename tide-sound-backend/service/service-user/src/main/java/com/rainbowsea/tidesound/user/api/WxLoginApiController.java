@@ -48,7 +48,6 @@ public class WxLoginApiController {
     @Operation(summary = "更新用户信息")
     @TingshuLogin
     public Result updateUser(@RequestBody UserInfoVo userInfoVo) {
-
         userInfoService.updateUser(userInfoVo);
         return Result.ok();
     }
@@ -73,7 +72,7 @@ public class WxLoginApiController {
     //@TingshuLogin
     public Result getNewAccessToken() {
         Map<String, Object> map = userInfoService.getNewAccessToken();
-        Object flag = map.get("1");
+        String flag = (String) map.get("1");
         // 含有 1 的 value 值说明，用户从来就没有登录过，让其登录去
         //if(map != null && StringUtils.isEmpty(flag)) {
         if (map != null && flag.equals("v")) {

@@ -42,4 +42,7 @@ public class RedisConstant {
 
     public static final String RANKING_KEY_PREFIX = "ranking:";
     public static final String ALBUM_STAT_ENDTIME = "album:stat:endTime";
+
+    // 直播模块
+    public static final String LIVE_MESSAGE_CHANNEL = "live:msg:channel";
 }

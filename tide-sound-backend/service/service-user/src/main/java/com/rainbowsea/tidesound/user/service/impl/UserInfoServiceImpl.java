@@ -119,6 +119,9 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
      */
     @Override
     public Map<String, Object> wxLogin(String code) {
+
+
+
         // 1. 判断 code 码是否存在
         if (StringUtils.isEmpty(code)) {
             throw new GuiguException(201, "code 不存在");

@@ -16,6 +16,8 @@ public class SocketMsg {
         PUBLIC_MSG("1","公共聊天消息"),
         JOIN_CHAT("2","加入直播间"),
         CLOSE_SOCKET("3","退出直播间"),
+        GIFT_MSG("4","礼物消息"),
+        PRAISE_MSG("5","点赞消息"),
         TOKEN_INVALID("-1","token无效"),
         ;
 

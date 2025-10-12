@@ -6,6 +6,7 @@
       <list>
         <option value="$PROJECT_DIR$/pom.xml" />
         <option value="$PROJECT_DIR$/rainbowsea-myCache-starter/pom.xml" />
+        <option value="$PROJECT_DIR$/service/service-live/pom.xml" />
       </list>
     </option>
   </component>

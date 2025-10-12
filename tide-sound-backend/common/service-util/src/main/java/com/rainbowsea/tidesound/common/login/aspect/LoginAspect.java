@@ -130,9 +130,9 @@ public class LoginAspect {
         // 4.比 对 Redis 中是否存在 jsonWebToken
         String accessTokenKey = RedisConstant.USER_LOGIN_KEY_PREFIX + openId;
         String accessTokenFromRedis = redisTemplate.opsForValue().get(accessTokenKey);
-        //if (StringUtils.isEmpty(accessTokenFromRedis) || !jsonWebTokenFromWeb.equals(accessTokenFromRedis)) {
-        //    throw new GuiguException(401, "accessToken已过期");
-        //}
+        if (StringUtils.isEmpty(accessTokenFromRedis) || !jsonWebTokenFromWeb.equals(accessTokenFromRedis)) {
+            throw new GuiguException(401, "accessToken已过期");
+        }
 
 
         return Long.parseLong(userId.toString());
